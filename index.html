@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Archive</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#14110f;
+    --panel:#1d1811;
+    --panel-raised:#241d14;
+    --panel-border:#372c1c;
+    --parchment:#e9e0cc;
+    --muted:#a89a7d;
+    --ember:#c1622f;
+    --ember-bright:#dd7a44;
+    --gold:#b8923f;
+    --thread:#6f5a8a;
+    --thread-bright:#9481b5;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse at top left, rgba(193,98,47,0.06), transparent 45%),
+      radial-gradient(ellipse at bottom right, rgba(111,90,138,0.07), transparent 50%),
+      var(--ink);
+    color:var(--parchment);
+    font-family:'Inter',sans-serif;
+    line-height:1.5;
+    min-height:100vh;
+  }
+  a{color:inherit;text-decoration:none;}
+  ::selection{background:var(--ember);color:var(--ink);}
+
+  h1,h2,h3,.display{
+    font-family:'Spectral',serif;
+    font-weight:600;
+    letter-spacing:0.01em;
+  }
+  .eyebrow{
+    font-family:'JetBrains Mono',monospace;
+    font-size:0.72rem;
+    text-transform:uppercase;
+    letter-spacing:0.14em;
+    color:var(--muted);
+  }
+  .mono{font-family:'JetBrains Mono',monospace;}
+
+  /* ---------- Shell ---------- */
+  header.shell{
+    position:sticky;top:0;z-index:10;
+    background:rgba(20,17,15,0.92);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--panel-border);
+    padding:16px 24px;
+    display:flex;align-items:center;justify-content:space-between;
+    gap:16px;flex-wrap:wrap;
+  }
+  .brand{display:flex;align-items:baseline;gap:10px;cursor:pointer;}
+  .brand .mark{color:var(--ember);font-size:1.4rem;}
+  .brand h1{font-size:1.3rem;margin:0;}
+  nav.crumbs{
+    font-family:'JetBrains Mono',monospace;
+    font-size:0.78rem;
+    color:var(--muted);
+  }
+  nav.crumbs a:hover{color:var(--ember-bright);}
+  .search-box{
+    display:flex;align-items:center;gap:8px;
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    border-radius:8px;
+    padding:8px 12px;
+    min-width:200px;
+  }
+  .search-box input{
+    background:none;border:none;outline:none;
+    color:var(--parchment);font-family:'Inter',sans-serif;font-size:0.9rem;
+    width:100%;
+  }
+  .search-box input::placeholder{color:var(--muted);}
+  .search-box svg{flex-shrink:0;opacity:0.6;}
+
+  main{max-width:920px;margin:0 auto;padding:32px 24px 80px;}
+
+  /* ---------- Section headers ---------- */
+  .section-head{
+    display:flex;align-items:baseline;justify-content:space-between;
+    margin:40px 0 16px;
+    border-bottom:1px solid var(--panel-border);
+    padding-bottom:8px;
+  }
+  .section-head:first-child{margin-top:0;}
+  .section-head h2{font-size:1.1rem;margin:0;color:var(--parchment);}
+  .section-head .count{font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--muted);}
+
+  /* ---------- Card grid (the "index card" look) ---------- */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;}
+  .card{
+    position:relative;
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    border-radius:2px;
+    padding:16px 16px 14px;
+    transition:transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    overflow:hidden;
+  }
+  .card::before{
+    content:'';
+    position:absolute;top:0;left:0;right:0;height:3px;
+    background:var(--ember);
+    transform:scaleX(0);transform-origin:left;
+    transition:transform 0.2s ease;
+  }
+  .card:hover{transform:translateY(-2px);border-color:var(--ember);background:var(--panel-raised);}
+  .card:hover::before{transform:scaleX(1);}
+  .card .kind{
+    font-family:'JetBrains Mono',monospace;font-size:0.65rem;
+    text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);
+    display:block;margin-bottom:6px;
+  }
+  .card .name{font-family:'Spectral',serif;font-size:1.15rem;font-weight:600;display:block;margin-bottom:4px;}
+  .card .sub{font-size:0.82rem;color:var(--muted);margin:0 0 8px;}
+  .card .snippet{font-size:0.85rem;color:var(--parchment);opacity:0.85;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:0;}
+  .tag-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+
+  .tag{
+    display:inline-block;
+    font-family:'JetBrains Mono',monospace;
+    font-size:0.68rem;
+    padding:3px 8px;
+    border:1px solid var(--panel-border);
+    border-radius:20px;
+    color:var(--gold);
+    background:rgba(184,146,63,0.06);
+  }
+  .tag:hover{border-color:var(--gold);background:rgba(184,146,63,0.14);}
+  .tag.empty-state{color:var(--muted);border-style:dashed;}
+
+  /* ---------- Detail page ---------- */
+  .detail-header{
+    display:flex;gap:20px;align-items:flex-start;margin-bottom:20px;
+  }
+  .detail-header img{
+    width:96px;height:96px;object-fit:cover;border:1px solid var(--panel-border);
+    background:var(--panel);flex-shrink:0;
+  }
+  .detail-header h1{font-size:2rem;margin:0 0 6px;}
+  .detail-meta{font-size:0.85rem;color:var(--muted);}
+  .detail-meta a{color:var(--ember-bright);}
+  .detail-meta a:hover{text-decoration:underline;}
+  .bio{
+    background:var(--panel);border:1px solid var(--panel-border);
+    border-left:3px solid var(--ember);
+    padding:16px 18px;margin:20px 0;font-size:0.95rem;
+  }
+  .bio.empty{color:var(--muted);font-style:italic;}
+
+  /* ---------- Relationship thread board ---------- */
+  .thread-board{
+    position:relative;
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    padding:28px 20px;
+    margin:16px 0;
+    overflow:visible;
+  }
+  .thread-board svg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;}
+  .thread-board .pin{
+    position:relative;z-index:2;
+    display:inline-flex;flex-direction:column;align-items:center;
+    text-align:center;width:110px;
+  }
+  .thread-board .center-pin{width:130px;}
+  .thread-board .node{
+    width:14px;height:14px;border-radius:50%;
+    background:var(--ember);
+    box-shadow:0 0 0 4px rgba(193,98,47,0.15);
+    margin-bottom:8px;
+  }
+  .thread-board .center-pin .node{background:var(--gold);box-shadow:0 0 0 5px rgba(184,146,63,0.18);}
+  .thread-board .pin .lbl{font-family:'Spectral',serif;font-size:0.95rem;}
+  .thread-board .pin .rel-label{
+    font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:var(--thread-bright);
+    text-transform:uppercase;letter-spacing:0.08em;margin-top:2px;
+  }
+  .thread-row{display:flex;justify-content:center;align-items:center;gap:40px;flex-wrap:wrap;position:relative;z-index:2;}
+
+  /* ---------- Tag cloud ---------- */
+  .tag-cloud{display:flex;flex-wrap:wrap;gap:8px;}
+
+  /* ---------- Search ---------- */
+  .search-results .card{margin-bottom:0;}
+  .empty-note{color:var(--muted);font-style:italic;padding:20px 0;}
+
+  footer{
+    max-width:920px;margin:0 auto;padding:20px 24px 60px;
+    color:var(--muted);font-size:0.78rem;font-family:'JetBrains Mono',monospace;
+    border-top:1px solid var(--panel-border);
+  }
+
+  @media (max-width:600px){
+    header.shell{padding:12px 16px;}
+    main{padding:24px 16px 60px;}
+    .detail-header{flex-direction:column;}
+    .thread-row{gap:20px;}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;scroll-behavior:auto !important;}
+  }
+</style>
+</head>
+<body>
+
+<header class="shell">
+  <div class="brand" onclick="location.hash='#/'">
+    <span class="mark">&#10038;</span>
+    <h1>The Archive</h1>
+  </div>
+  <div class="search-box">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input id="global-search" type="text" placeholder="Search players, OCs, stories, tags&hellip;" />
+  </div>
+</header>
+
+<main id="app"></main>
+
+<footer>
+  the archive &mdash; data lives in <span class="mono">/data/*.json</span>, edit and push to update
+</footer>
+
+<script>
+/* ============================================================
+   DATA LAYER
+   ============================================================ */
+let DB = { players: [], ocs: [], stories: [] };
+
+async function loadData(){
+  const [players, ocs, stories] = await Promise.all([
+    fetch('data/players.json').then(r => r.json()),
+    fetch('data/ocs.json').then(r => r.json()),
+    fetch('data/stories.json').then(r => r.json())
+  ]);
+  DB = { players, ocs, stories };
+}
+
+const byId = (arr, id) => arr.find(x => x.id === id);
+
+function allTags(){
+  const set = new Set();
+  DB.ocs.forEach(o => (o.tags||[]).forEach(t => set.add(t)));
+  DB.stories.forEach(s => (s.tags||[]).forEach(t => set.add(t)));
+  return [...set].sort();
+}
+
+/* ============================================================
+   TEMPLATES / HELPERS
+   ============================================================ */
+const esc = (s='') => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function tagPills(tags){
+  if(!tags || !tags.length) return `<span class="tag empty-state">no tags</span>`;
+  return tags.map(t => `<a class="tag" href="#/tag/${esc(t)}">#${esc(t)}</a>`).join('');
+}
+
+function cardHTML(kind, item, subLabel, snippet){
+  return `
+    <a class="card" href="#/${kind}/${esc(item.id)}">
+      <span class="kind">${kind}</span>
+      <span class="name">${esc(item.name || item.title)}</span>
+      ${subLabel ? `<p class="sub">${subLabel}</p>` : ''}
+      ${snippet ? `<p class="snippet">${esc(snippet)}</p>` : ''}
+      <div class="tag-row">${tagPills(item.tags)}</div>
+    </a>`;
+}
+
+function sectionHTML(title, count, bodyHTML){
+  return `
+    <div class="section-head"><h2>${title}</h2><span class="count">${count}</span></div>
+    ${bodyHTML}`;
+}
+
+/* ============================================================
+   VIEWS
+   ============================================================ */
+function viewHome(){
+  const players = DB.players.map(p =>
+    cardHTML('player', p, `${(p.ocIds||[]).length} OC${(p.ocIds||[]).length===1?'':'s'}`, p.bio));
+  const ocs = DB.ocs.map(o =>
+    cardHTML('oc', o, byId(DB.players,o.playerId) ? 'played by ' + byId(DB.players,o.playerId).name : '', o.bio));
+  const stories = DB.stories.map(s =>
+    cardHTML('story', s, `${(s.ocIds||[]).length} in the cast`, s.summary));
+
+  const tags = allTags().map(t => `<a class="tag" href="#/tag/${esc(t)}">#${esc(t)}</a>`).join('');
+
+  return `
+    <div class="eyebrow">the archive &mdash; players &middot; original characters &middot; stories</div>
+    <h1 style="font-size:2.1rem;margin:6px 0 4px;">Every thread, in one place</h1>
+    <p style="color:var(--muted);max-width:60ch;">Browse by player, OC, or story below, or jump straight to a tag. Everything cross-links automatically.</p>
+
+    ${sectionHTML('Tags', allTags().length, `<div class="tag-cloud">${tags || '<span class="tag empty-state">no tags yet</span>'}</div>`)}
+    ${sectionHTML('Players', DB.players.length, `<div class="grid">${players.join('') || emptyNote('No players yet.')}</div>`)}
+    ${sectionHTML('OCs', DB.ocs.length, `<div class="grid">${ocs.join('') || emptyNote('No OCs yet.')}</div>`)}
+    ${sectionHTML('Stories', DB.stories.length, `<div class="grid">${stories.join('') || emptyNote('No stories yet.')}</div>`)}
+  `;
+}
+
+function emptyNote(msg){ return `<p class="empty-note">${msg}</p>`; }
+
+function viewPlayer(id){
+  const p = byId(DB.players, id);
+  if(!p) return notFound('player', id);
+  const ocs = DB.ocs.filter(o => o.playerId === id);
+  return `
+    <div class="detail-header">
+      ${p.image ? `<img src="${esc(p.image)}" alt="${esc(p.name)}">` : ''}
+      <div>
+        <div class="eyebrow">player</div>
+        <h1>${esc(p.name)}</h1>
+        <div class="detail-meta">${ocs.length} OC${ocs.length===1?'':'s'}</div>
+      </div>
+    </div>
+    <div class="bio ${p.bio ? '' : 'empty'}">${p.bio ? esc(p.bio) : 'No bio yet.'}</div>
+    ${sectionHTML('OCs played', ocs.length, `<div class="grid">${
+      ocs.map(o => cardHTML('oc', o, '', o.bio)).join('') || emptyNote('No OCs linked to this player yet.')
+    }</div>`)}
+  `;
+}
+
+function viewOC(id){
+  const o = byId(DB.ocs, id);
+  if(!o) return notFound('oc', id);
+  const player = byId(DB.players, o.playerId);
+  const stories = DB.stories.filter(s => (o.storyIds||[]).includes(s.id));
+  const rels = (o.relationships||[]).map(r => ({...r, target: byId(DB.ocs, r.ocId)})).filter(r => r.target);
+
+  return `
+    <div class="detail-header">
+      ${o.image ? `<img src="${esc(o.image)}" alt="${esc(o.name)}">` : ''}
+      <div>
+        <div class="eyebrow">original character</div>
+        <h1>${esc(o.name)}</h1>
+        <div class="detail-meta">${player ? `played by <a href="#/player/${esc(player.id)}">${esc(player.name)}</a>` : 'no player linked'}</div>
+      </div>
+    </div>
+    <div class="bio ${o.bio ? '' : 'empty'}">${o.bio ? esc(o.bio) : 'No bio yet.'}</div>
+    <div class="tag-row">${tagPills(o.tags)}</div>
+
+    ${sectionHTML('Relationships', rels.length, rels.length ? threadBoard(o, rels) : emptyNote('No relationships recorded yet.'))}
+    ${sectionHTML('Appears in', stories.length, `<div class="grid">${
+      stories.map(s => cardHTML('story', s, '', s.summary)).join('') || emptyNote('Not linked to any stories yet.')
+    }</div>`)}
+  `;
+}
+
+function threadBoard(center, rels){
+  // simple corkboard-style thread visualization: center pin, radiating pins, SVG lines between them
+  const pins = rels.map((r,i) => `
+    <div class="pin">
+      <div class="node"></div>
+      <a class="lbl" href="#/oc/${esc(r.target.id)}">${esc(r.target.name)}</a>
+      <div class="rel-label">${esc(r.label || 'linked')}</div>
+    </div>`).join('');
+
+  return `
+    <div class="thread-board">
+      <div class="thread-row">
+        <div class="pin center-pin"><div class="node"></div><div class="lbl">${esc(center.name)}</div></div>
+        ${pins}
+      </div>
+    </div>`;
+}
+
+function viewStory(id){
+  const s = byId(DB.stories, id);
+  if(!s) return notFound('story', id);
+  const cast = DB.ocs.filter(o => (s.ocIds||[]).includes(o.id));
+  return `
+    <div class="detail-header">
+      ${s.image ? `<img src="${esc(s.image)}" alt="${esc(s.title)}">` : ''}
+      <div>
+        <div class="eyebrow">story${s.date ? ' &middot; ' + esc(s.date) : ''}</div>
+        <h1>${esc(s.title)}</h1>
+        <div class="detail-meta">${cast.length} in the cast</div>
+      </div>
+    </div>
+    <div class="bio ${s.summary ? '' : 'empty'}">${s.summary ? esc(s.summary) : 'No summary yet.'}</div>
+    <div class="tag-row">${tagPills(s.tags)}</div>
+    ${sectionHTML('Cast', cast.length, `<div class="grid">${
+      cast.map(o => cardHTML('oc', o, '', o.bio)).join('') || emptyNote('No cast linked yet.')
+    }</div>`)}
+  `;
+}
+
+function viewTag(tag){
+  const ocs = DB.ocs.filter(o => (o.tags||[]).includes(tag));
+  const stories = DB.stories.filter(s => (s.tags||[]).includes(tag));
+  return `
+    <div class="eyebrow">tag</div>
+    <h1 style="font-size:1.8rem;">#${esc(tag)}</h1>
+    ${sectionHTML('OCs', ocs.length, `<div class="grid">${ocs.map(o=>cardHTML('oc',o,'',o.bio)).join('') || emptyNote('No OCs with this tag.')}</div>`)}
+    ${sectionHTML('Stories', stories.length, `<div class="grid">${stories.map(s=>cardHTML('story',s,'',s.summary)).join('') || emptyNote('No stories with this tag.')}</div>`)}
+  `;
+}
+
+function viewSearch(query){
+  const q = query.trim().toLowerCase();
+  const results = [];
+  DB.players.forEach(p => { if(matches(p,q)) results.push(cardHTML('player',p,'',p.bio)); });
+  DB.ocs.forEach(o => { if(matches(o,q)) results.push(cardHTML('oc',o,'',o.bio)); });
+  DB.stories.forEach(s => { if(matches(s,q,'title')) results.push(cardHTML('story',s,'',s.summary)); });
+
+  return `
+    <div class="eyebrow">search</div>
+    <h1 style="font-size:1.8rem;">Results for &ldquo;${esc(query)}&rdquo;</h1>
+    <div class="grid search-results">${results.join('') || emptyNote('Nothing matched. Try a different name or tag.')}</div>
+  `;
+}
+
+function matches(item, q, nameField='name'){
+  if(!q) return false;
+  const hay = [
+    item[nameField] || '',
+    item.bio || item.summary || '',
+    ...(item.tags||[])
+  ].join(' ').toLowerCase();
+  return hay.includes(q);
+}
+
+function notFound(kind, id){
+  return `
+    <div class="eyebrow">not found</div>
+    <h1>No ${esc(kind)} called &ldquo;${esc(id)}&rdquo;</h1>
+    <p style="color:var(--muted);">Check the id in the JSON file, or <a href="#/" style="color:var(--ember-bright);">go home</a>.</p>
+  `;
+}
+
+/* ============================================================
+   ROUTER
+   ============================================================ */
+function render(){
+  const hash = location.hash || '#/';
+  const parts = hash.replace(/^#\//,'').split('/').filter(Boolean);
+  const app = document.getElementById('app');
+
+  if(parts.length === 0){
+    app.innerHTML = viewHome();
+  } else if(parts[0] === 'player' && parts[1]){
+    app.innerHTML = viewPlayer(decodeURIComponent(parts[1]));
+  } else if(parts[0] === 'oc' && parts[1]){
+    app.innerHTML = viewOC(decodeURIComponent(parts[1]));
+  } else if(parts[0] === 'story' && parts[1]){
+    app.innerHTML = viewStory(decodeURIComponent(parts[1]));
+  } else if(parts[0] === 'tag' && parts[1]){
+    app.innerHTML = viewTag(decodeURIComponent(parts[1]));
+  } else if(parts[0] === 'search' && parts[1]){
+    app.innerHTML = viewSearch(decodeURIComponent(parts[1]));
+  } else {
+    app.innerHTML = notFound('page', parts.join('/'));
+  }
+  window.scrollTo(0,0);
+}
+
+window.addEventListener('hashchange', render);
+
+const searchInput = document.getElementById('global-search');
+let searchTimer;
+searchInput.addEventListener('input', (e) => {
+  clearTimeout(searchTimer);
+  const val = e.target.value;
+  searchTimer = setTimeout(() => {
+    if(val.trim()) location.hash = '#/search/' + encodeURIComponent(val);
+    else if(location.hash.startsWith('#/search')) location.hash = '#/';
+  }, 200);
+});
+
+/* ============================================================
+   INIT
+   ============================================================ */
+loadData().then(render).catch(err => {
+  document.getElementById('app').innerHTML = `
+    <div class="eyebrow">error</div>
+    <h1>Couldn't load the data files</h1>
+    <p style="color:var(--muted);">${esc(err.message)}</p>
+    <p style="color:var(--muted);">If you opened this file directly (file://), that's the issue &mdash; browsers block JSON fetches from local files. Run a local server, or view it via GitHub Pages.</p>
+  `;
+});
+</script>
+</body>
+</html>
