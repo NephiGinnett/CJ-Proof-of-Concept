@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Archive &mdash; self-test</title>
+<style>
+  :root{
+    --ink:#14110f;
+    --panel:#1d1811;
+    --panel-border:#372c1c;
+    --parchment:#e9e0cc;
+    --muted:#a89a7d;
+    --ember:#c1622f;
+    --gold:#b8923f;
+    --pass:#6f9a52;
+    --fail:#c9483f;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;background:var(--ink);color:var(--parchment);
+    font-family:'Inter',system-ui,sans-serif;line-height:1.5;
+  }
+  main{max-width:920px;margin:0 auto;padding:32px 24px 80px;}
+  .eyebrow{
+    font-family:ui-monospace,'JetBrains Mono',monospace;font-size:0.72rem;
+    text-transform:uppercase;letter-spacing:0.14em;color:var(--muted);
+  }
+  h1{font-family:Georgia,'Spectral',serif;font-size:2rem;margin:6px 0 4px;}
+  p.lede{color:var(--muted);max-width:65ch;}
+  .mono{font-family:ui-monospace,'JetBrains Mono',monospace;}
+
+  .summary{
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    background:var(--panel);border:1px solid var(--panel-border);
+    border-left:3px solid var(--gold);padding:16px 18px;margin:22px 0 8px;
+    font-family:ui-monospace,'JetBrains Mono',monospace;font-size:0.85rem;
+  }
+  .summary.ok{border-left-color:var(--pass);}
+  .summary.bad{border-left-color:var(--fail);}
+  .summary .big{font-size:1.15rem;font-weight:600;}
+  .summary .ct-pass{color:var(--pass);}
+  .summary .ct-fail{color:var(--fail);}
+
+  .banner{
+    background:rgba(201,72,63,0.1);border:1px solid var(--fail);
+    padding:14px 16px;margin:18px 0;font-size:0.9rem;
+  }
+  .banner code{background:rgba(0,0,0,0.35);padding:2px 6px;}
+
+  .group-head{
+    display:flex;align-items:baseline;justify-content:space-between;
+    margin:32px 0 10px;border-bottom:1px solid var(--panel-border);padding-bottom:8px;
+  }
+  .group-head h2{font-family:Georgia,'Spectral',serif;font-size:1.05rem;margin:0;}
+  .group-head .count{font-family:ui-monospace,monospace;font-size:0.75rem;color:var(--muted);}
+
+  .case{
+    display:flex;gap:12px;align-items:flex-start;
+    border:1px solid var(--panel-border);border-top:none;
+    background:var(--panel);padding:10px 14px;font-size:0.9rem;
+  }
+  .case:first-of-type{border-top:1px solid var(--panel-border);}
+  .chip{
+    font-family:ui-monospace,'JetBrains Mono',monospace;font-size:0.66rem;font-weight:600;
+    letter-spacing:0.1em;padding:3px 8px;border-radius:2px;flex-shrink:0;color:var(--ink);
+  }
+  .chip.pass{background:var(--pass);}
+  .chip.fail{background:var(--fail);color:#fff;}
+  .chip.run{background:var(--muted);}
+  .case .why{
+    display:block;color:#e79b94;font-family:ui-monospace,monospace;
+    font-size:0.78rem;margin-top:5px;white-space:pre-wrap;word-break:break-word;
+  }
+  .case .fix{display:block;color:var(--muted);font-size:0.78rem;margin-top:4px;font-style:italic;}
+
+  iframe#app-frame{
+    width:1024px;height:768px;border:0;
+    position:absolute;left:-10000px;top:0;
+  }
+  footer{
+    max-width:920px;margin:0 auto;padding:20px 24px 60px;color:var(--muted);
+    font-size:0.78rem;font-family:ui-monospace,monospace;border-top:1px solid var(--panel-border);
+  }
+</style>
+</head>
+<body>
+
+<main>
+  <div class="eyebrow">the archive &mdash; self-test</div>
+  <h1>Does the wiki still work?</h1>
+  <p class="lede">
+    This page loads the real <span class="mono">index.html</span> and the real
+    <span class="mono">data/*.json</span> files, then drives the site the way a visitor would
+    and checks what came out. Green all the way down means the site is fine to publish.
+  </p>
+  <div id="protocol-warning"></div>
+  <div class="summary" id="summary"><span class="big">Running&hellip;</span></div>
+  <div id="results"></div>
+</main>
+
+<footer>
+  open this at <span class="mono">/test.html</span> on the live site, or locally with
+  <span class="mono">python3 -m http.server 8000</span>
+</footer>
+
+<iframe id="app-frame" title="the archive under test"></iframe>
+
+<script>
+/* ============================================================
+   TINY TEST RUNNER
+   ============================================================ */
+const GROUPS = [];
+let _current = null;
+
+function describe(name, fn){ GROUPS.push({ name, tests: [] }); _current = GROUPS[GROUPS.length-1]; fn(); }
+function it(name, fn, fix){ _current.tests.push({ name, fn, fix }); }
+
+function assert(cond, msg){ if(!cond) throw new Error(msg || 'assertion failed'); }
+function eq(actual, expected, msg){
+  if(actual !== expected){
+    throw new Error(`${msg ? msg + ' — ' : ''}expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+  }
+}
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+let passed = 0, failed = 0;
+
+async function run(){
+  const out = document.getElementById('results');
+  for(const g of GROUPS){
+    const head = document.createElement('div');
+    head.className = 'group-head';
+    head.innerHTML = `<h2>${esc(g.name)}</h2><span class="count">${g.tests.length}</span>`;
+    out.appendChild(head);
+
+    for(const t of g.tests){
+      const row = document.createElement('div');
+      row.className = 'case';
+      row.innerHTML = `<span class="chip run">&hellip;</span><span>${esc(t.name)}</span>`;
+      out.appendChild(row);
+      try{
+        await t.fn();
+        passed++;
+        row.querySelector('.chip').className = 'chip pass';
+        row.querySelector('.chip').textContent = 'PASS';
+      }catch(err){
+        failed++;
+        row.querySelector('.chip').className = 'chip fail';
+        row.querySelector('.chip').textContent = 'FAIL';
+        const why = document.createElement('span');
+        why.className = 'why';
+        why.textContent = err && err.message ? err.message : String(err);
+        row.lastElementChild.appendChild(why);
+        if(t.fix){
+          const fix = document.createElement('span');
+          fix.className = 'fix';
+          fix.textContent = 'fix: ' + t.fix;
+          row.lastElementChild.appendChild(fix);
+        }
+      }
+      paintSummary(false);
+      await new Promise(r => requestAnimationFrame(r));
+    }
+  }
+  paintSummary(true);
+}
+
+function paintSummary(done){
+  const el = document.getElementById('summary');
+  const total = GROUPS.reduce((n,g) => n + g.tests.length, 0);
+  el.className = 'summary' + (done ? (failed ? ' bad' : ' ok') : '');
+  el.innerHTML = done
+    ? `<span class="big">${failed ? 'Something is broken' : 'All good'}</span>
+       <span class="ct-pass">${passed} passed</span>
+       <span class="ct-fail">${failed} failed</span>
+       <span style="color:var(--muted)">of ${total}</span>`
+    : `<span class="big">Running&hellip;</span>
+       <span class="ct-pass">${passed} passed</span>
+       <span class="ct-fail">${failed} failed</span>
+       <span style="color:var(--muted)">of ${total}</span>`;
+}
+
+/* ============================================================
+   FIXTURES / HARNESS
+   ============================================================ */
+const RAW = {};          // parsed data/*.json, fetched once
+let frame, W, D;         // the iframe running index.html
+
+async function fetchJSON(path){
+  const res = await fetch(path, { cache: 'no-store' });
+  if(!res.ok) throw new Error(`${path} → HTTP ${res.status}. The site fetches this exact path, so the page will show the "Couldn't load the data files" error.`);
+  const text = await res.text();
+  try{ return JSON.parse(text); }
+  catch(e){ throw new Error(`${path} is not valid JSON — ${e.message}. A stray or missing comma between entries is the usual cause.`); }
+}
+
+function bootFrame(){
+  return new Promise((resolve, reject) => {
+    frame = document.getElementById('app-frame');
+    frame.addEventListener('load', async () => {
+      W = frame.contentWindow;
+      D = frame.contentDocument;
+      const deadline = Date.now() + 8000;
+      while(Date.now() < deadline){
+        const app = D.getElementById('app');
+        if(app && app.children.length) return resolve();
+        await new Promise(r => setTimeout(r, 40));
+      }
+      reject(new Error('index.html never rendered anything into #app within 8s.'));
+    }, { once: true });
+    frame.addEventListener('error', () => reject(new Error('index.html failed to load')), { once: true });
+    frame.src = 'index.html';
+  });
+}
+
+/* Navigate the app under test and wait for its router to finish. */
+function nav(hash){
+  return new Promise(resolve => {
+    if(W.location.hash === hash){ W.render(); return setTimeout(resolve, 0); }
+    const done = () => { W.removeEventListener('hashchange', done); setTimeout(resolve, 30); };
+    W.addEventListener('hashchange', done);
+    W.location.hash = hash;
+  });
+}
+
+const app = () => D.getElementById('app');
+const q  = sel => app().querySelector(sel);
+const qa = sel => [...app().querySelectorAll(sel)];
+const appText = () => app().textContent;
+
+/* Card links: each card is a .card box with a stretched .card-link inside it. */
+const cardLinks = kind => qa(`.card > a.card-link[href^="#/${kind}/"]`);
+const cardIds   = kind => cardLinks(kind).map(a => a.getAttribute('href').split('/').pop());
+const cardFor   = href => { const a = q(`.card > a.card-link[href="${href}"]`); return a && a.closest('.card'); };
+
+/* Type into a field in the app under test and fire its input handler. */
+function type(id, value){
+  const el = D.getElementById(id);
+  if(!el) throw new Error(`no field #${id} on this form`);
+  el.value = value;
+  el.dispatchEvent(new W.Event('input', { bubbles: true }));
+}
+
+/* Temporarily add a record to the app's in-memory DB, run fn, then put it back. */
+async function withFixture(collection, record, fn){
+  W.eval(`DB.${collection}.push(${JSON.stringify(record)})`);
+  try{ await fn(); }
+  finally{
+    W.eval(`DB.${collection} = DB.${collection}.filter(x => x.id !== ${JSON.stringify(record.id)})`);
+  }
+}
+
+const idsOf = arr => arr.map(x => x.id);
+const dupes = list => list.filter((x,i) => list.indexOf(x) !== i);
+
+/* ============================================================
+   1. THE DATA FILES THEMSELVES
+   ============================================================ */
+describe('Data files load and parse', () => {
+  it('data/players.json loads and is a list', async () => {
+    RAW.players = await fetchJSON('data/players.json');
+    assert(Array.isArray(RAW.players), 'players.json must be a [ ... ] array at the top level');
+  }, 'the JSON files must live in a data/ folder next to index.html');
+
+  it('data/ocs.json loads and is a list', async () => {
+    RAW.ocs = await fetchJSON('data/ocs.json');
+    assert(Array.isArray(RAW.ocs), 'ocs.json must be a [ ... ] array at the top level');
+  }, 'the JSON files must live in a data/ folder next to index.html');
+
+  it('data/stories.json loads and is a list', async () => {
+    RAW.stories = await fetchJSON('data/stories.json');
+    assert(Array.isArray(RAW.stories), 'stories.json must be a [ ... ] array at the top level');
+  }, 'the JSON files must live in a data/ folder next to index.html');
+
+  it('every player has an id and a name', () => {
+    RAW.players.forEach((p, i) => {
+      assert(p && typeof p.id === 'string' && p.id, `players[${i}] is missing "id"`);
+      assert(typeof p.name === 'string' && p.name, `player "${p.id}" is missing "name"`);
+    });
+  });
+
+  it('every OC has an id and a name', () => {
+    RAW.ocs.forEach((o, i) => {
+      assert(o && typeof o.id === 'string' && o.id, `ocs[${i}] is missing "id"`);
+      assert(typeof o.name === 'string' && o.name, `oc "${o.id}" is missing "name"`);
+    });
+  });
+
+  it('every story has an id and a title', () => {
+    RAW.stories.forEach((s, i) => {
+      assert(s && typeof s.id === 'string' && s.id, `stories[${i}] is missing "id"`);
+      assert(typeof s.title === 'string' && s.title, `story "${s.id}" is missing "title" (stories use "title", not "name")`);
+    });
+  });
+
+  it('list fields are lists, not bare strings', () => {
+    const listy = (obj, field, kind) => {
+      if(obj[field] === undefined) return;
+      assert(Array.isArray(obj[field]), `${kind} "${obj.id}" has "${field}" as ${typeof obj[field]} — it must be an array, e.g. ["one","two"]`);
+    };
+    RAW.players.forEach(p => listy(p, 'ocIds', 'player'));
+    RAW.ocs.forEach(o => { listy(o, 'tags', 'oc'); listy(o, 'storyIds', 'oc'); listy(o, 'relationships', 'oc'); });
+    RAW.stories.forEach(s => { listy(s, 'ocIds', 'story'); listy(s, 'tags', 'story'); });
+  });
+
+  it('ids are unique within each file', () => {
+    ['players','ocs','stories'].forEach(k => {
+      const d = dupes(idsOf(RAW[k]));
+      assert(!d.length, `${k}.json reuses these ids: ${d.join(', ')} — the site looks entries up by id, so only the first one is reachable`);
+    });
+  });
+
+  it('ids are url-safe (lowercase, no spaces)', () => {
+    const bad = [];
+    ['players','ocs','stories'].forEach(k =>
+      RAW[k].forEach(x => { if(!/^[a-z0-9-]+$/.test(x.id)) bad.push(`${k}: "${x.id}"`); }));
+    assert(!bad.length, `these ids have spaces, capitals or symbols and will break their page links: ${bad.join(', ')}`);
+  });
+});
+
+/* ============================================================
+   2. CROSS-LINKS RESOLVE
+   ============================================================ */
+describe('Cross-links point at things that exist', () => {
+  it('every OC\'s playerId matches a real player', () => {
+    const players = idsOf(RAW.players);
+    RAW.ocs.forEach(o => {
+      if(!o.playerId) return;
+      assert(players.includes(o.playerId),
+        `oc "${o.id}" has playerId "${o.playerId}", but no player has that id — their page will say "no player linked"`);
+    });
+  }, 'check for a typo, or add that player to data/players.json');
+
+  it('every OC\'s storyIds match real stories', () => {
+    const stories = idsOf(RAW.stories);
+    RAW.ocs.forEach(o => (o.storyIds || []).forEach(sid => {
+      assert(stories.includes(sid),
+        `oc "${o.id}" lists storyId "${sid}", which no story has — it will silently vanish from their "Appears in" list`);
+    }));
+  });
+
+  it('every story\'s cast (ocIds) matches real OCs', () => {
+    const ocs = idsOf(RAW.ocs);
+    RAW.stories.forEach(s => (s.ocIds || []).forEach(oid => {
+      assert(ocs.includes(oid),
+        `story "${s.id}" lists cast member "${oid}", which no OC has — they will silently vanish from the cast`);
+    }));
+  });
+
+  it('every relationship points at a real OC', () => {
+    const ocs = idsOf(RAW.ocs);
+    RAW.ocs.forEach(o => (o.relationships || []).forEach(r => {
+      assert(r && typeof r.ocId === 'string', `oc "${o.id}" has a relationship with no "ocId"`);
+      assert(ocs.includes(r.ocId),
+        `oc "${o.id}" has a relationship with "${r.ocId}", which no OC has — the site drops relationships it can't resolve, so it just won't show up`);
+    }));
+  });
+
+  it('no OC is in a relationship with themselves', () => {
+    RAW.ocs.forEach(o => (o.relationships || []).forEach(r => {
+      assert(r.ocId !== o.id, `oc "${o.id}" lists a relationship with themselves`);
+    }));
+  });
+
+  it('any player ocIds that are filled in are real OCs', () => {
+    const ocs = idsOf(RAW.ocs);
+    RAW.players.forEach(p => (p.ocIds || []).forEach(oid => {
+      assert(ocs.includes(oid), `player "${p.id}" lists ocId "${oid}", which no OC has`);
+    }));
+  }, 'ocIds is optional — leaving it [] is fine, the site works it out from each OC\'s playerId');
+});
+
+/* ============================================================
+   3. THE SITE ACTUALLY RENDERS
+   ============================================================ */
+describe('The site loads and routes', () => {
+  it('index.html boots and loads its data', async () => {
+    await bootFrame();
+    assert(!appText().includes("Couldn't load the data files"),
+      'index.html showed its data-loading error screen. It fetches data/players.json, data/ocs.json and data/stories.json relative to itself — those three files must sit in a data/ folder beside index.html.');
+  }, 'move the JSON files into data/ next to index.html');
+
+  it('the home page lists players, OCs and stories', async () => {
+    await nav('#/');
+    const text = appText();
+    ['Tags','Players','OCs','Stories'].forEach(h =>
+      assert(text.includes(h), `the home page is missing its "${h}" section`));
+    eq(cardLinks('player').length, RAW.players.length, 'player cards on the home page');
+    eq(cardLinks('oc').length, RAW.ocs.length, 'OC cards on the home page');
+    eq(cardLinks('story').length, RAW.stories.length, 'story cards on the home page');
+  });
+
+  it('a tagged card renders once, with its tags inside it', async () => {
+    // regression: tag pills are links, and a link inside the card's link is invalid HTML.
+    // Browsers "repair" it by splitting the card in half, so every tagged entry showed up
+    // twice with its tags floating outside the box.
+    const oc = RAW.ocs.find(o => (o.tags || []).length);
+    if(!oc) return; // nothing tagged yet
+    await nav('#/');
+    eq(cardIds('oc').filter(id => id === oc.id).length, 1, `cards rendered for oc "${oc.id}"`);
+    const card = cardFor(`#/oc/${oc.id}`);
+    const row = card.querySelector('.tag-row');
+    assert(row, `oc "${oc.id}" has tags but no tag row inside its card`);
+    eq(row.querySelectorAll('a.tag').length, oc.tags.length, `tag pills inside the card for "${oc.id}"`);
+    assert(!card.querySelector('a a'), 'a link is nested inside another link — browsers will tear the card apart');
+  }, 'nested <a> elements are invalid HTML; the card link must not wrap the tag links');
+
+  it('a player page opens and shows their name', async () => {
+    const p = RAW.players[0];
+    await nav('#/player/' + p.id);
+    assert(q('h1'), 'no heading rendered on the player page');
+    eq(q('h1').textContent, p.name, 'player page heading');
+  });
+
+  it('an OC page opens and credits their player', async () => {
+    const oc = RAW.ocs.find(o => o.playerId) || RAW.ocs[0];
+    await nav('#/oc/' + oc.id);
+    eq(q('h1').textContent, oc.name, 'OC page heading');
+    if(oc.playerId){
+      const link = q(`.detail-meta a[href="#/player/${oc.playerId}"]`);
+      assert(link, `the OC page doesn't link back to player "${oc.playerId}"`);
+    }
+  });
+
+  it('a story page opens and shows its title', async () => {
+    const s = RAW.stories[0];
+    await nav('#/story/' + s.id);
+    eq(q('h1').textContent, s.title, 'story page heading');
+  });
+
+  it('a tag page gathers everything with that tag', async () => {
+    const tag = (RAW.ocs.find(o => (o.tags||[]).length) || {}).tags?.[0]
+             || (RAW.stories.find(s => (s.tags||[]).length) || {}).tags?.[0];
+    if(!tag) return; // nothing tagged yet — nothing to check
+    await nav('#/tag/' + tag);
+    const expectOcs = RAW.ocs.filter(o => (o.tags||[]).includes(tag)).length;
+    const expectStories = RAW.stories.filter(s => (s.tags||[]).includes(tag)).length;
+    eq(cardLinks('oc').length, expectOcs, `OCs listed under #${tag}`);
+    eq(cardLinks('story').length, expectStories, `stories listed under #${tag}`);
+  });
+
+  it('search finds an entry by name', async () => {
+    const oc = RAW.ocs[0];
+    await nav('#/search/' + encodeURIComponent(oc.name));
+    assert(cardFor(`#/oc/${oc.id}`), `searching for "${oc.name}" didn't turn up their card`);
+  });
+
+  it('a bad id shows "not found" instead of a blank page', async () => {
+    await nav('#/oc/definitely-not-a-real-oc-xyz');
+    assert(appText().toLowerCase().includes('not found') || appText().includes('No oc called'),
+      'an unknown OC id rendered something other than the not-found page');
+  });
+
+  it('a bad route shows "not found" instead of a blank page', async () => {
+    await nav('#/wat/nope');
+    assert(appText().toLowerCase().includes('not found'), 'an unknown route rendered something other than the not-found page');
+  });
+});
+
+/* ============================================================
+   4. THE GOLDEN RULE: REVERSE LINKS DERIVE THEMSELVES
+   ============================================================ */
+describe('Reverse links fill themselves in', () => {
+  it('a player page lists exactly the OCs that name them', async () => {
+    for(const p of RAW.players){
+      await nav('#/player/' + p.id);
+      const expected = RAW.ocs.filter(o => o.playerId === p.id).map(o => o.id).sort();
+      eq(cardIds('oc').sort().join(','), expected.join(','), `OCs shown on player "${p.id}"`);
+    }
+  });
+
+  it('a story page lists exactly the OCs it casts', async () => {
+    for(const s of RAW.stories){
+      await nav('#/story/' + s.id);
+      const expected = RAW.ocs.filter(o => (s.ocIds||[]).includes(o.id)).map(o => o.id).sort();
+      eq(cardIds('oc').sort().join(','), expected.join(','), `cast shown on story "${s.id}"`);
+    }
+  });
+
+  it('an OC\'s "Appears in" matches their storyIds', async () => {
+    for(const o of RAW.ocs){
+      await nav('#/oc/' + o.id);
+      const expected = RAW.stories.filter(s => (o.storyIds||[]).includes(s.id)).map(s => s.id).sort();
+      eq(cardIds('story').sort().join(','), expected.join(','), `stories shown on OC "${o.id}"`);
+    }
+  });
+
+  it('the relationship board pins every resolvable relationship', async () => {
+    const oc = RAW.ocs.find(o => (o.relationships||[]).length);
+    if(!oc) return; // no relationships recorded yet
+    await nav('#/oc/' + oc.id);
+    const board = q('.thread-board');
+    assert(board, `oc "${oc.id}" has relationships but no thread board rendered`);
+    // one pin per relationship, plus the centre pin for the OC themselves
+    eq(board.querySelectorAll('.pin').length, oc.relationships.length + 1, 'pins on the thread board');
+    oc.relationships.forEach(r => {
+      assert(board.querySelector(`a[href="#/oc/${r.ocId}"]`), `no pin linking to "${r.ocId}"`);
+    });
+  });
+
+  it('the home card OC count matches the player page', async () => {
+    const p = RAW.players[0];
+    const expected = RAW.ocs.filter(o => o.playerId === p.id).length;
+    await nav('#/');
+    const card = cardFor(`#/player/${p.id}`);
+    assert(card, `no home card for player "${p.id}"`);
+    eq(card.querySelector('.sub').textContent.trim(),
+       `${expected} OC${expected === 1 ? '' : 's'}`,
+       `home card count for "${p.id}" should be derived from the OCs, not from a hand-kept list`);
+  });
+
+  it('a new OC shows up on its player and story pages with no other edits', async () => {
+    const p = RAW.players[0];
+    const s = RAW.stories[0];
+    const fixture = {
+      id: 'selftest-temp-oc', name: 'Selftest Temp OC', playerId: p.id,
+      bio: 'Added by test.html, never written to disk.', image: '',
+      tags: ['selftest-tag'], storyIds: s ? [s.id] : [], relationships: []
+    };
+    await withFixture('ocs', fixture, async () => {
+      await nav('#/player/' + p.id);
+      assert(cardFor('#/oc/selftest-temp-oc'), 'the new OC did not appear on their player page');
+
+      await nav('#/oc/selftest-temp-oc');
+      assert(q(`.detail-meta a[href="#/player/${p.id}"]`), 'the new OC did not link back to their player');
+      if(s){
+        assert(cardFor(`#/story/${s.id}`), 'the new OC did not list the story they were added to');
+      }
+
+      await nav('#/tag/selftest-tag');
+      assert(cardFor('#/oc/selftest-temp-oc'), 'the new OC did not show up on its tag page');
+    });
+    await nav('#/');
+    assert(!cardFor('#/oc/selftest-temp-oc'), 'the temporary test OC was not cleaned up');
+  }, 'this is the "only edit the source" promise in the README — one entry, every reverse list updates');
+});
+
+/* ============================================================
+   5. THE + ADD ENTRY BUILDER
+   ============================================================ */
+function builderJSON(){
+  const raw = D.getElementById('json-out').textContent.replace(/,\s*$/, '');
+  try{ return JSON.parse(raw); }
+  catch(e){ throw new Error('the builder produced something that is not valid JSON:\n' + raw); }
+}
+
+describe('The + Add entry builder', () => {
+  it('offers all three entry types', async () => {
+    await nav('#/add/player');
+    eq(qa('.type-tab').length, 3, 'type tabs');
+    assert(q('.type-tab.active'), 'no type tab is marked active');
+  });
+
+  it('builds a player, turning the name into an id', async () => {
+    await nav('#/add/player');
+    type('f-name', 'Casey O\'Brien');
+    type('f-bio', 'Runs the Tuesday game.');
+    const obj = builderJSON();
+    eq(obj.id, 'casey-o-brien', 'generated player id');
+    eq(obj.name, "Casey O'Brien", 'player name');
+    eq(obj.bio, 'Runs the Tuesday game.', 'player bio');
+    assert(Array.isArray(obj.ocIds), 'a new player should start with an empty ocIds array');
+  });
+
+  it('builds an OC with tags, stories and relationships', async () => {
+    await nav('#/add/oc');
+    type('f-name', 'Wren Ashcroft');
+    type('f-playerid', 'casey-o-brien');
+    type('f-tags', 'tavern-crew, ghost-story');
+    type('f-storyids', 'The Ember Heist');
+    D.getElementById('rel-add-btn').click();
+    const row = D.querySelector('#rel-rows .rel-row');
+    assert(row, 'the "+ add relationship" button did not add a row');
+    const relId = row.querySelector('.rel-ocid'), relLabel = row.querySelector('.rel-label');
+    relId.value = 'Lyra';   relId.dispatchEvent(new W.Event('input', { bubbles: true }));
+    relLabel.value = 'mentor'; relLabel.dispatchEvent(new W.Event('input', { bubbles: true }));
+
+    const obj = builderJSON();
+    eq(obj.id, 'wren-ashcroft', 'generated OC id');
+    eq(obj.playerId, 'casey-o-brien', 'playerId');
+    eq(obj.tags.join('|'), 'tavern-crew|ghost-story', 'tags split on commas');
+    eq(obj.storyIds.join('|'), 'the-ember-heist', 'story titles turned into ids');
+    eq(obj.relationships.length, 1, 'relationships');
+    eq(obj.relationships[0].ocId, 'lyra', 'relationship ocId');
+    eq(obj.relationships[0].label, 'mentor', 'relationship label');
+  });
+
+  it('drops a relationship row when you remove it', async () => {
+    await nav('#/add/oc');
+    type('f-name', 'Temp');
+    D.getElementById('rel-add-btn').click();
+    const row = D.querySelector('#rel-rows .rel-row');
+    const relId = row.querySelector('.rel-ocid');
+    relId.value = 'lyra'; relId.dispatchEvent(new W.Event('input', { bubbles: true }));
+    eq(builderJSON().relationships.length, 1, 'relationships before removing');
+    row.querySelector('.rel-remove').click();
+    eq(builderJSON().relationships.length, 0, 'relationships after removing');
+  });
+
+  it('builds a story with a cast', async () => {
+    await nav('#/add/story');
+    type('f-name', 'The Long Winter');
+    type('f-bio', 'Everyone freezes.');
+    type('f-ocids', 'Lyra, Kade');
+    type('f-tags', 'winter');
+    const obj = builderJSON();
+    eq(obj.id, 'the-long-winter', 'generated story id');
+    eq(obj.title, 'The Long Winter', 'story title');
+    eq(obj.summary, 'Everyone freezes.', 'story summary');
+    eq(obj.ocIds.join('|'), 'lyra|kade', 'cast names turned into ids');
+  });
+
+  it('produces JSON that the site can actually read back', async () => {
+    await nav('#/add/oc');
+    type('f-name', 'Roundtrip Test OC');
+    type('f-playerid', RAW.players[0].id);
+    type('f-tags', 'roundtrip');
+    const obj = builderJSON();
+    await withFixture('ocs', obj, async () => {
+      await nav('#/oc/' + obj.id);
+      eq(q('h1').textContent, 'Roundtrip Test OC', 'the built entry renders as a real OC page');
+      assert(q(`.detail-meta a[href="#/player/${RAW.players[0].id}"]`), 'the built entry did not link to its player');
+    });
+  }, 'paste the builder output into data/ocs.json exactly as-is (minus the trailing comma if it is the last entry)');
+});
+
+/* ============================================================
+   6. HOSTILE INPUT
+   ============================================================ */
+describe('Odd characters stay text, not markup', () => {
+  it('an entry with HTML in its name renders as plain text', async () => {
+    const nasty = {
+      id: 'selftest-escape', name: '<img src=x onerror="window.__pwned=1">Bobby',
+      playerId: '', bio: 'Robert "); DROP TABLE --', image: '',
+      tags: [], storyIds: [], relationships: []
+    };
+    await withFixture('ocs', nasty, async () => {
+      await nav('#/');
+      eq(app().querySelectorAll('img[src="x"]').length, 0, 'injected markup created a real element');
+      eq(W.__pwned, undefined, 'injected script ran');
+      assert(appText().includes('<img src=x'), 'the raw text should be shown literally on the card');
+      await nav('#/oc/selftest-escape');
+      eq(app().querySelectorAll('img[src="x"]').length, 0, 'injected markup created a real element on the detail page');
+      assert(appText().includes('DROP TABLE'), 'the bio should be shown literally');
+    });
+  });
+
+  it('an apostrophe in a name does not break its card link', async () => {
+    const oc = { id: 'selftest-quote', name: "D'Arcy \"Quotes\" Vale", playerId: '', bio: '', image: '', tags: [], storyIds: [], relationships: [] };
+    await withFixture('ocs', oc, async () => {
+      await nav('#/');
+      const card = cardFor('#/oc/selftest-quote');
+      assert(card, 'the card link was mangled by the quotes in the name');
+      eq(card.querySelector('.name').textContent, "D'Arcy \"Quotes\" Vale", 'displayed name');
+    });
+  });
+});
+
+/* ============================================================
+   GO
+   ============================================================ */
+if(location.protocol === 'file:'){
+  document.getElementById('protocol-warning').innerHTML = `
+    <div class="banner">
+      <strong>Opened straight from the filesystem.</strong>
+      Browsers block local pages from fetching local JSON, so every test below will fail for
+      that reason alone &mdash; it says nothing about your data. Run
+      <code>python3 -m http.server 8000</code> in this folder and open
+      <code>http://localhost:8000/test.html</code> instead, or just open this page on the
+      published site.
+    </div>`;
+}
+run();
+</script>
+</body>
+</html>
