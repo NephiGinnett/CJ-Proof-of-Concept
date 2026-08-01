@@ -2,7 +2,13 @@
 
 A wiki for tracking players, their OCs, and the stories they've been in — all cross-linked automatically. No app to install, no database, no build step. Just three JSON files and one HTML file.
 
-## Adding a new entry
+## Adding a new entry (the easy way)
+
+Click **+ Add entry** in the top nav of the site itself. Pick Player / OC / Story, fill in the fields, and it builds properly-formatted JSON for you on the right as you type — including turning names you type into other fields (like an OC's story list) into the right lowercase-hyphenated ids automatically. Hit **Copy JSON**, then paste it into the matching file below as a new entry in the array (see "Adding a new entry (by hand)" for exactly where it goes), and commit.
+
+This builder doesn't save anything on its own — it's a static site with no backend, so there's no direct "upload." It just saves you from hand-writing JSON and getting a field wrong.
+
+## Adding a new entry (by hand)
 
 Everything lives in the `data/` folder:
 
@@ -61,6 +67,25 @@ Every "reverse" list — a player's roster of OCs, a story's cast list, who else
 3. Wait 30–60 seconds. GitHub Pages rebuilds automatically and your edit is live.
 
 That's it — no build step, no server, nothing to run. Editing JSON on your phone through the GitHub app or mobile browser works exactly the same way.
+
+## Checking it still works
+
+There's a self-test page at `test.html`. Open it the same way you'd open the wiki — on the live
+site it's just `.../test.html` — and it will load the real `index.html` and the real `data/*.json`
+files, click through the site the way a visitor would, and tell you what it found.
+
+It checks two different things:
+
+- **Your data.** Valid JSON, no duplicate ids, and every cross-link pointing at something that
+  actually exists — a `playerId`, `storyIds`, a story's `ocIds`, a relationship. A typo'd id
+  doesn't crash the site, it just makes an entry quietly disappear from a list, which is easy to
+  miss by eye. This catches it.
+- **The site itself.** Every page type opens, the reverse lists derive themselves correctly, the
+  **+ Add entry** builder produces JSON the site can read back, and text with odd characters in it
+  (quotes, angle brackets) stays text instead of turning into markup.
+
+Green all the way down means it's safe to publish. A red row tells you which entry is wrong and
+what to fix. It's read-only — it never writes to your data files.
 
 ## Local preview (optional)
 

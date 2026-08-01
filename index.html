@@ -118,6 +118,10 @@
   }
   .card:hover{transform:translateY(-2px);border-color:var(--ember);background:var(--panel-raised);}
   .card:hover::before{transform:scaleX(1);}
+  /* stretched link: covers the whole card, sits under the tag pills so those stay clickable */
+  .card .card-link{position:absolute;top:0;left:0;right:0;bottom:0;z-index:1;}
+  .card .card-link:focus-visible{outline:2px solid var(--ember-bright);outline-offset:-3px;}
+  .card .tag-row{position:relative;z-index:2;}
   .card .kind{
     font-family:'JetBrains Mono',monospace;font-size:0.65rem;
     text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);
@@ -198,6 +202,60 @@
   .search-results .card{margin-bottom:0;}
   .empty-note{color:var(--muted);font-style:italic;padding:20px 0;}
 
+  /* ---------- Add-entry builder ---------- */
+  .type-tabs{display:flex;gap:8px;margin:18px 0 24px;flex-wrap:wrap;}
+  .type-tab{
+    font-family:'JetBrains Mono',monospace;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.08em;
+    padding:8px 16px;border:1px solid var(--panel-border);border-radius:20px;
+    color:var(--muted);cursor:pointer;background:var(--panel);
+  }
+  .type-tab:hover{border-color:var(--gold);color:var(--parchment);}
+  .type-tab.active{background:var(--ember);border-color:var(--ember);color:var(--ink);font-weight:600;}
+
+  .builder-grid{display:grid;grid-template-columns:1fr;gap:24px;}
+  @media (min-width:820px){ .builder-grid{grid-template-columns:1fr 1fr;} }
+
+  .field{margin-bottom:16px;}
+  .field label{
+    display:block;font-family:'JetBrains Mono',monospace;font-size:0.72rem;
+    text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:6px;
+  }
+  .field .hint{font-size:0.75rem;color:var(--muted);margin-top:4px;font-style:italic;}
+  .field input[type=text], .field textarea{
+    width:100%;background:var(--panel);border:1px solid var(--panel-border);
+    color:var(--parchment);font-family:'Inter',sans-serif;font-size:0.9rem;
+    padding:10px 12px;border-radius:2px;outline:none;
+  }
+  .field input[type=text]:focus, .field textarea:focus{border-color:var(--ember);}
+  .field textarea{resize:vertical;min-height:70px;}
+
+  .rel-row{display:flex;gap:8px;margin-bottom:8px;}
+  .rel-row input{flex:1;}
+  .rel-remove, .rel-add{
+    font-family:'JetBrains Mono',monospace;font-size:0.75rem;
+    background:var(--panel);border:1px solid var(--panel-border);color:var(--muted);
+    border-radius:2px;cursor:pointer;padding:0 10px;
+  }
+  .rel-remove:hover{border-color:var(--ember);color:var(--ember-bright);}
+  .rel-add{padding:8px 14px;color:var(--gold);border-color:var(--panel-border);}
+  .rel-add:hover{border-color:var(--gold);}
+
+  .json-preview{
+    background:var(--panel);border:1px solid var(--panel-border);border-left:3px solid var(--gold);
+    padding:16px;font-family:'JetBrains Mono',monospace;font-size:0.78rem;line-height:1.55;
+    white-space:pre-wrap;word-break:break-word;color:var(--parchment);
+    max-height:520px;overflow:auto;
+  }
+  .copy-btn{
+    display:inline-flex;align-items:center;gap:8px;margin-top:12px;
+    font-family:'JetBrains Mono',monospace;font-size:0.8rem;
+    background:var(--ember);color:var(--ink);border:none;border-radius:2px;
+    padding:10px 16px;cursor:pointer;font-weight:600;
+  }
+  .copy-btn:hover{background:var(--ember-bright);}
+  .copy-btn.copied{background:var(--gold);}
+  .builder-note{color:var(--muted);font-size:0.82rem;max-width:60ch;margin:4px 0 0;}
+
   footer{
     max-width:920px;margin:0 auto;padding:20px 24px 60px;
     color:var(--muted);font-size:0.78rem;font-family:'JetBrains Mono',monospace;
@@ -223,9 +281,12 @@
     <span class="mark">&#10038;</span>
     <h1>The Archive</h1>
   </div>
-  <div class="search-box">
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-    <input id="global-search" type="text" placeholder="Search players, OCs, stories, tags&hellip;" />
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div class="search-box">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="global-search" type="text" placeholder="Search players, OCs, stories, tags&hellip;" />
+    </div>
+    <a href="#/add/player" class="copy-btn" style="margin:0;white-space:nowrap;">+ Add entry</a>
   </div>
 </header>
 
@@ -270,14 +331,19 @@ function tagPills(tags){
 }
 
 function cardHTML(kind, item, subLabel, snippet){
+  // the whole card is clickable via a stretched overlay link rather than by wrapping
+  // the card in an <a> — the tag pills are links too, and nesting <a> inside <a> is
+  // invalid HTML that browsers "repair" by tearing the card apart.
+  const label = esc(item.name || item.title);
   return `
-    <a class="card" href="#/${kind}/${esc(item.id)}">
+    <div class="card">
+      <a class="card-link" href="#/${kind}/${esc(item.id)}" aria-label="${label}"></a>
       <span class="kind">${kind}</span>
-      <span class="name">${esc(item.name || item.title)}</span>
+      <span class="name">${label}</span>
       ${subLabel ? `<p class="sub">${subLabel}</p>` : ''}
       ${snippet ? `<p class="snippet">${esc(snippet)}</p>` : ''}
       <div class="tag-row">${tagPills(item.tags)}</div>
-    </a>`;
+    </div>`;
 }
 
 function sectionHTML(title, count, bodyHTML){
@@ -290,10 +356,14 @@ function sectionHTML(title, count, bodyHTML){
    VIEWS
    ============================================================ */
 function viewHome(){
-  const players = DB.players.map(p =>
-    cardHTML('player', p, `${(p.ocIds||[]).length} OC${(p.ocIds||[]).length===1?'':'s'}`, p.bio));
-  const ocs = DB.ocs.map(o =>
-    cardHTML('oc', o, byId(DB.players,o.playerId) ? 'played by ' + byId(DB.players,o.playerId).name : '', o.bio));
+  const players = DB.players.map(p => {
+    const n = DB.ocs.filter(o => o.playerId === p.id).length;
+    return cardHTML('player', p, `${n} OC${n===1?'':'s'}`, p.bio);
+  });
+  const ocs = DB.ocs.map(o => {
+    const player = byId(DB.players, o.playerId);
+    return cardHTML('oc', o, player ? 'played by ' + esc(player.name) : '', o.bio);
+  });
   const stories = DB.stories.map(s =>
     cardHTML('story', s, `${(s.ocIds||[]).length} in the cast`, s.summary));
 
@@ -433,6 +503,120 @@ function matches(item, q, nameField='name'){
   return hay.includes(q);
 }
 
+/* ---------- Add-entry JSON builder ---------- */
+const slugify = s => (s||'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+const listFromCSV = s => (s||'').split(',').map(x=>x.trim()).filter(Boolean);
+
+function viewAdd(type){
+  type = type || 'player';
+  const tabs = ['player','oc','story'].map(t =>
+    `<a href="#/add/${t}" class="type-tab ${t===type?'active':''}">${t==='oc'?'OC':t}</a>`).join('');
+
+  let fieldsHTML = '';
+  if(type === 'player'){
+    fieldsHTML = `
+      <div class="field"><label>Name</label><input type="text" id="f-name" placeholder="Display name"></div>
+      <div class="field"><label>Bio</label><textarea id="f-bio" placeholder="A sentence or two."></textarea></div>
+      <div class="field"><label>Image URL <span class="hint">optional</span></label><input type="text" id="f-image" placeholder="https://&hellip;"></div>
+      <p class="builder-note">You don't need to fill in ocIds &mdash; that fills itself in once an OC lists this player's id under playerId.</p>`;
+  } else if(type === 'oc'){
+    fieldsHTML = `
+      <div class="field"><label>Name</label><input type="text" id="f-name" placeholder="Character name"></div>
+      <div class="field"><label>Player id</label><input type="text" id="f-playerid" placeholder="e.g. zoe &mdash; must match an existing player's id"></div>
+      <div class="field"><label>Bio</label><textarea id="f-bio" placeholder="Who are they?"></textarea></div>
+      <div class="field"><label>Tags <span class="hint">comma separated</span></label><input type="text" id="f-tags" placeholder="tavern-crew, redemption-arc"></div>
+      <div class="field"><label>Story ids <span class="hint">comma separated, must match existing story ids</span></label><input type="text" id="f-storyids" placeholder="the-ember-heist"></div>
+      <div class="field"><label>Image URL <span class="hint">optional</span></label><input type="text" id="f-image" placeholder="https://&hellip;"></div>
+      <div class="field">
+        <label>Relationships</label>
+        <div id="rel-rows"></div>
+        <button type="button" class="rel-add" id="rel-add-btn">+ add relationship</button>
+      </div>`;
+  } else {
+    fieldsHTML = `
+      <div class="field"><label>Title</label><input type="text" id="f-name" placeholder="Story title"></div>
+      <div class="field"><label>Summary</label><textarea id="f-bio" placeholder="What happened?"></textarea></div>
+      <div class="field"><label>Date <span class="hint">optional, any format</span></label><input type="text" id="f-date" placeholder="e.g. Session 12, or 2026-03-01"></div>
+      <div class="field"><label>Tags <span class="hint">comma separated</span></label><input type="text" id="f-tags" placeholder="heist"></div>
+      <div class="field"><label>Cast: OC ids <span class="hint">comma separated, must match existing OC ids</span></label><input type="text" id="f-ocids" placeholder="lyra, kade"></div>
+      <div class="field"><label>Image URL <span class="hint">optional</span></label><input type="text" id="f-image" placeholder="https://&hellip;"></div>`;
+  }
+
+  return `
+    <div class="eyebrow">add entry</div>
+    <h1 style="font-size:1.8rem;margin:6px 0 4px;">Build a new ${type === 'oc' ? 'OC' : type}</h1>
+    <p style="color:var(--muted);max-width:60ch;">Fill this in, then copy the JSON on the right into <span class="mono">data/${type==='oc'?'ocs':type+'s'}.json</span> as a new entry in the array (don't forget a comma between entries), then commit and push.</p>
+    <div class="type-tabs">${tabs}</div>
+    <div class="builder-grid">
+      <div>${fieldsHTML}</div>
+      <div>
+        <div class="eyebrow" style="margin-bottom:8px;">live preview</div>
+        <div class="json-preview" id="json-out">{}</div>
+        <button class="copy-btn" id="copy-json-btn">Copy JSON</button>
+      </div>
+    </div>
+  `;
+}
+
+function bindAddForm(type){
+  const out = document.getElementById('json-out');
+  const relRows = document.getElementById('rel-rows');
+
+  function addRelRow(ocId='', label=''){
+    const row = document.createElement('div');
+    row.className = 'rel-row';
+    row.innerHTML = `
+      <input type="text" class="rel-ocid" placeholder="oc id" value="${ocId}">
+      <input type="text" class="rel-label" placeholder="label, e.g. rival" value="${label}">
+      <button type="button" class="rel-remove">&times;</button>`;
+    row.querySelector('.rel-remove').addEventListener('click', () => { row.remove(); update(); });
+    row.querySelectorAll('input').forEach(i => i.addEventListener('input', update));
+    relRows.appendChild(row);
+  }
+  if(type === 'oc'){
+    document.getElementById('rel-add-btn').addEventListener('click', () => addRelRow());
+  }
+
+  function update(){
+    const val = id => (document.getElementById(id)?.value || '').trim();
+    let obj = {};
+    if(type === 'player'){
+      obj = { id: slugify(val('f-name')) || 'your-id-here', name: val('f-name') || 'Display Name',
+        bio: val('f-bio'), image: val('f-image'), ocIds: [] };
+    } else if(type === 'oc'){
+      const rels = [...relRows.querySelectorAll('.rel-row')].map(r => ({
+        ocId: slugify(r.querySelector('.rel-ocid').value) || r.querySelector('.rel-ocid').value.trim(),
+        label: r.querySelector('.rel-label').value.trim()
+      })).filter(r => r.ocId);
+      obj = { id: slugify(val('f-name')) || 'your-oc-id', name: val('f-name') || 'Display Name',
+        playerId: slugify(val('f-playerid')) || val('f-playerid'),
+        bio: val('f-bio'), image: val('f-image'),
+        tags: listFromCSV(val('f-tags')), storyIds: listFromCSV(val('f-storyids')).map(slugify),
+        relationships: rels };
+    } else {
+      obj = { id: slugify(val('f-name')) || 'your-story-id', title: val('f-name') || 'Story Title',
+        summary: val('f-bio'), date: val('f-date'), image: val('f-image'),
+        ocIds: listFromCSV(val('f-ocids')).map(slugify), tags: listFromCSV(val('f-tags')) };
+    }
+    out.textContent = JSON.stringify(obj, null, 2) + ',';
+  }
+
+  document.querySelectorAll('#app input, #app textarea').forEach(el => el.addEventListener('input', update));
+  update();
+
+  document.getElementById('copy-json-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('copy-json-btn');
+    try{
+      await navigator.clipboard.writeText(out.textContent);
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+    }catch(e){
+      btn.textContent = 'Select the text above and copy manually';
+    }
+    setTimeout(() => { btn.textContent = 'Copy JSON'; btn.classList.remove('copied'); }, 1800);
+  });
+}
+
 function notFound(kind, id){
   return `
     <div class="eyebrow">not found</div>
@@ -461,6 +645,10 @@ function render(){
     app.innerHTML = viewTag(decodeURIComponent(parts[1]));
   } else if(parts[0] === 'search' && parts[1]){
     app.innerHTML = viewSearch(decodeURIComponent(parts[1]));
+  } else if(parts[0] === 'add'){
+    const type = parts[1] || 'player';
+    app.innerHTML = viewAdd(type);
+    bindAddForm(type);
   } else {
     app.innerHTML = notFound('page', parts.join('/'));
   }
