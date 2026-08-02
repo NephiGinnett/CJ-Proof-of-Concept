@@ -5,10 +5,18 @@
     "playerId": "zoe",
     "bio": "EXAMPLE ENTRY — replace or delete me. A reformed cutpurse trying to go straight.",
     "image": "",
-    "tags": ["redemption-arc", "tavern-crew"],
-    "storyIds": ["the-ember-heist"],
+    "tags": [
+      "redemption-arc",
+      "tavern-crew"
+    ],
+    "storyIds": [
+      "the-ember-heist"
+    ],
     "relationships": [
-      { "ocId": "kade", "label": "rival" }
+      {
+        "ocId": "kade",
+        "label": "rival"
+      }
     ]
   },
   {
@@ -17,10 +25,17 @@
     "playerId": "zoe",
     "bio": "EXAMPLE ENTRY — replace or delete me. A stoic mercenary with a code.",
     "image": "",
-    "tags": ["tavern-crew"],
-    "storyIds": ["the-ember-heist"],
+    "tags": [
+      "tavern-crew"
+    ],
+    "storyIds": [
+      "the-ember-heist"
+    ],
     "relationships": [
-      { "ocId": "lyra", "label": "rival" }
+      {
+        "ocId": "lyra",
+        "label": "rival"
+      }
     ]
   }
 ]
