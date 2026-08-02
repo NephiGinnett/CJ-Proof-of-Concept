@@ -4,7 +4,10 @@
     "name": "Zoe",
     "bio": "EXAMPLE ENTRY — replace or delete me. Game designer and occasional GM.",
     "image": "",
-    "ocIds": ["lyra", "kade"]
+    "ocIds": [
+      "lyra",
+      "kade"
+    ]
   },
   {
     "id": "example-player-2",
