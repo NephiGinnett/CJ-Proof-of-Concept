@@ -646,6 +646,8 @@ function clearPreview(){
 }
 
 const bar = () => D.getElementById('preview-bar');
+/* `hidden` can be set and still render if CSS overrides it, so measure the box. */
+const barShowing = () => bar().offsetHeight > 0;
 
 describe('Upload, preview, publish', () => {
   it('the header offers an upload button', async () => {
@@ -658,7 +660,8 @@ describe('Upload, preview, publish', () => {
   it('nothing is in preview to begin with', async () => {
     clearPreview();
     await nav('#/upload');
-    eq(bar().hidden, true, 'the preview bar should be hidden when nothing is uploaded');
+    eq(bar().hidden, true, 'the preview bar should be marked hidden when nothing is uploaded');
+    eq(barShowing(), false, 'the preview bar is still taking up space on the page');
   });
 
   it('an uploaded file shows up on the site immediately', async () => {
@@ -678,6 +681,7 @@ describe('Upload, preview, publish', () => {
 
   it('the preview bar says it is not published yet', async () => {
     eq(bar().hidden, false, 'the preview bar should be visible while a file is loaded');
+    eq(barShowing(), true, 'the preview bar is marked visible but renders as nothing');
     const text = bar().textContent.toLowerCase();
     assert(text.includes('not published'), 'the bar should make clear nothing is saved yet');
     assert(bar().querySelector('#pv-publish'), 'no publish button in the preview bar');
@@ -696,6 +700,7 @@ describe('Upload, preview, publish', () => {
     bar().querySelector('#pv-discard').click();
     await new Promise(r => setTimeout(r, 60));
     eq(bar().hidden, true, 'the preview bar should go away when the upload is discarded');
+    eq(barShowing(), false, 'the preview bar is still on screen after discarding');
     eq(cardLinks('oc').length, RAW.ocs.length, 'the published OCs should be back');
     assert(!cardFor('#/oc/uploaded-oc'), 'the discarded OC is still showing');
   });
@@ -804,7 +809,193 @@ describe('Upload, preview, publish', () => {
 });
 
 /* ============================================================
-   7. HOSTILE INPUT
+   7. NAVIGATION
+   ============================================================ */
+describe('Getting around', () => {
+  it('the header has a menu for each kind', async () => {
+    await nav('#/');
+    const links = [...D.querySelectorAll('#mainnav a')].map(a => a.getAttribute('href'));
+    ['#/', '#/players', '#/ocs', '#/stories', '#/tags'].forEach(h =>
+      assert(links.includes(h), `the menu has no link to ${h}`));
+  });
+
+  it('each index page lists everything of that kind', async () => {
+    await nav('#/players');
+    eq(cardLinks('player').length, RAW.players.length, 'players on the players index');
+    await nav('#/ocs');
+    eq(cardLinks('oc').length, RAW.ocs.length, 'OCs on the characters index');
+    await nav('#/stories');
+    eq(cardLinks('story').length, RAW.stories.length, 'stories on the stories index');
+  });
+
+  it('index pages are sorted by name', async () => {
+    await nav('#/ocs');
+    const shown = qa('.card .name').map(el => el.textContent);
+    const sorted = shown.slice().sort((a, b) => a.localeCompare(b));
+    eq(shown.join('|'), sorted.join('|'), 'characters should be listed alphabetically');
+  });
+
+  it('the tags index counts what carries each tag', async () => {
+    await nav('#/tags');
+    const tags = qa('.taglist a');
+    const expected = new Set();
+    RAW.ocs.forEach(o => (o.tags || []).forEach(t => expected.add(t)));
+    RAW.stories.forEach(s => (s.tags || []).forEach(t => expected.add(t)));
+    eq(tags.length, expected.size, 'tags listed');
+    if(tags.length){
+      const first = tags[0];
+      const tag = first.querySelector('.t-name').textContent.replace(/^#/, '');
+      const count = RAW.ocs.filter(o => (o.tags || []).includes(tag)).length
+                  + RAW.stories.filter(s => (s.tags || []).includes(tag)).length;
+      eq(first.querySelector('.t-count').textContent, String(count), `count for #${tag}`);
+    }
+  });
+
+  it('the menu highlights the section you are in', async () => {
+    await nav('#/ocs');
+    const active = D.querySelector('#mainnav a.active');
+    assert(active, 'nothing is highlighted on the characters index');
+    eq(active.getAttribute('href'), '#/ocs', 'highlighted menu item');
+
+    await nav('#/oc/' + RAW.ocs[0].id);
+    const stillActive = D.querySelector('#mainnav a.active');
+    assert(stillActive, 'nothing is highlighted on a character page');
+    eq(stillActive.getAttribute('href'), '#/ocs', 'a character page should highlight Characters');
+  });
+
+  it('detail pages show where you are', async () => {
+    await nav('#/oc/' + RAW.ocs[0].id);
+    const trail = q('.crumbs');
+    assert(trail, 'no breadcrumbs on a character page');
+    assert(trail.querySelector('a[href="#/ocs"]'), 'breadcrumbs should link back to the characters index');
+    assert(trail.textContent.includes(RAW.ocs[0].name), 'breadcrumbs should end with the entry itself');
+  });
+});
+
+/* ============================================================
+   8. DELETING ENTRIES
+   ============================================================ */
+async function deleteEntry(kind, id){
+  await nav(`#/${kind}/${id}`);
+  const btn = q('[data-delete-kind]');
+  assert(btn, `no delete button on the ${kind} page`);
+  btn.click();
+  await new Promise(r => setTimeout(r, 40));
+  const go = D.getElementById('confirm-delete');
+  assert(go, 'pressing delete did not ask for confirmation');
+  go.click();
+  await new Promise(r => setTimeout(r, 80));
+}
+
+describe('Deleting an entry', () => {
+  it('asks before deleting anything', async () => {
+    clearPreview();
+    await nav('#/oc/' + RAW.ocs[0].id);
+    q('[data-delete-kind]').click();
+    await new Promise(r => setTimeout(r, 40));
+    assert(q('.confirm-panel'), 'no confirmation appeared');
+    assert(D.getElementById('cancel-delete'), 'no way to back out');
+    D.getElementById('cancel-delete').click();
+    await new Promise(r => setTimeout(r, 40));
+    assert(!q('.confirm-panel'), 'backing out should close the confirmation');
+    eq(bar().hidden, true, 'backing out should not change anything');
+    await nav('#/ocs');
+    eq(cardLinks('oc').length, RAW.ocs.length, 'the OC should still be there');
+  });
+
+  it('says what else it will tidy up', async () => {
+    clearPreview();
+    const oc = RAW.ocs.find(o => RAW.stories.some(s => (s.ocIds || []).includes(o.id)));
+    if(!oc) return;
+    await nav('#/oc/' + oc.id);
+    q('[data-delete-kind]').click();
+    await new Promise(r => setTimeout(r, 40));
+    const panel = q('.confirm-panel');
+    assert(/cast of/i.test(panel.textContent), 'deleting a cast member should mention the stories they are in');
+    D.getElementById('cancel-delete').click();
+  });
+
+  it('deleting a character removes them everywhere they were linked', async () => {
+    clearPreview();
+    const oc = RAW.ocs[0];
+    await deleteEntry('oc', oc.id);
+
+    await nav('#/ocs');
+    assert(!cardFor(`#/oc/${oc.id}`), 'the deleted character is still listed');
+    eq(cardLinks('oc').length, RAW.ocs.length - 1, 'characters left');
+
+    // gone from every cast
+    for(const s of RAW.stories.filter(s => (s.ocIds || []).includes(oc.id))){
+      await nav('#/story/' + s.id);
+      assert(!cardFor(`#/oc/${oc.id}`), `still in the cast of "${s.id}"`);
+    }
+    // gone from every relationship board
+    for(const other of RAW.ocs.filter(o => (o.relationships || []).some(r => r.ocId === oc.id))){
+      await nav('#/oc/' + other.id);
+      const board = q('.thread-board');
+      assert(!board || !board.querySelector(`a[href="#/oc/${oc.id}"]`), `"${other.id}" still has a thread to them`);
+    }
+    // and the archive is internally consistent again
+    await nav('#/upload');
+    const report = q('.report');
+    if(report) eq(report.querySelectorAll('.flag.err').length, 0, 'deleting should not leave anything broken');
+  });
+
+  it('deleting a story unlinks it from its cast', async () => {
+    clearPreview();
+    const story = RAW.stories[0];
+    const wasIn = RAW.ocs.filter(o => (o.storyIds || []).includes(story.id));
+    await deleteEntry('story', story.id);
+
+    await nav('#/stories');
+    assert(!cardFor(`#/story/${story.id}`), 'the deleted story is still listed');
+    for(const o of wasIn){
+      await nav('#/oc/' + o.id);
+      assert(!cardFor(`#/story/${story.id}`), `"${o.id}" still lists the deleted story`);
+    }
+  });
+
+  it('deleting a player leaves their characters in the archive', async () => {
+    clearPreview();
+    const player = RAW.players.find(p => RAW.ocs.some(o => o.playerId === p.id));
+    if(!player) return;
+    const theirs = RAW.ocs.filter(o => o.playerId === player.id);
+    await deleteEntry('player', player.id);
+
+    await nav('#/players');
+    assert(!cardFor(`#/player/${player.id}`), 'the deleted player is still listed');
+    for(const o of theirs){
+      await nav('#/oc/' + o.id);
+      eq(q('h1').textContent, o.name, `"${o.id}" should still have a page`);
+      assert(/no player linked/i.test(q('.detail-meta').textContent),
+        `"${o.id}" should now show as having no player`);
+    }
+  });
+
+  it('a deletion is a preview, not a commit', async () => {
+    eq(bar().hidden, false, 'a deletion should show in the preview bar as unpublished');
+    assert(/not published/i.test(bar().textContent), 'the bar should say nothing is saved yet');
+  });
+
+  it('discarding brings a deleted entry back', async () => {
+    clearPreview();
+    const oc = RAW.ocs[0];
+    await deleteEntry('oc', oc.id);
+    await nav('#/ocs');
+    eq(cardLinks('oc').length, RAW.ocs.length - 1, 'deleted');
+    bar().querySelector('#pv-discard').click();
+    await new Promise(r => setTimeout(r, 60));
+    await nav('#/ocs');
+    eq(cardLinks('oc').length, RAW.ocs.length, 'everything should come back');
+    assert(cardFor(`#/oc/${oc.id}`), 'the deleted character should be back');
+    await nav('#/oc/' + oc.id);
+    eq(q('h1').textContent, oc.name, 'and their page should work again');
+    clearPreview();
+  });
+});
+
+/* ============================================================
+   9. HOSTILE INPUT
    ============================================================ */
 describe('Odd characters stay text, not markup', () => {
   it('an entry with HTML in its name renders as plain text', async () => {

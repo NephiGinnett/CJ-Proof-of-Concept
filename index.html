@@ -84,6 +84,64 @@
   }
   .search-box input::placeholder{color:var(--muted);}
   .search-box svg{flex-shrink:0;opacity:0.6;}
+  .shell-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+
+  /* ---------- Main navigation ---------- */
+  nav.mainnav{display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
+  nav.mainnav a{
+    font-family:'JetBrains Mono',monospace;font-size:0.78rem;
+    text-transform:uppercase;letter-spacing:0.08em;
+    color:var(--muted);padding:7px 12px;border-radius:2px;
+    border:1px solid transparent;white-space:nowrap;
+  }
+  nav.mainnav a:hover{color:var(--parchment);border-color:var(--panel-border);background:var(--panel);}
+  nav.mainnav a.active{color:var(--ember-bright);border-color:var(--panel-border);background:var(--panel);}
+
+  /* ---------- Breadcrumbs ---------- */
+  .crumbs{
+    font-family:'JetBrains Mono',monospace;font-size:0.72rem;
+    color:var(--muted);margin-bottom:14px;
+  }
+  .crumbs a{color:var(--muted);}
+  .crumbs a:hover{color:var(--ember-bright);}
+  .crumbs .sep{opacity:0.5;margin:0 6px;}
+
+  /* ---------- Index pages ---------- */
+  .index-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:6px 0 4px;}
+  .index-head h1{font-size:2rem;margin:0;}
+  .index-head .tally{font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--muted);}
+  .taglist{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;}
+  .taglist a{
+    display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+    background:var(--panel);border:1px solid var(--panel-border);
+    padding:10px 14px;border-radius:2px;
+  }
+  .taglist a:hover{border-color:var(--gold);background:var(--panel-raised);}
+  .taglist .t-name{font-family:'JetBrains Mono',monospace;font-size:0.82rem;color:var(--gold);}
+  .taglist .t-count{font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--muted);}
+
+  /* ---------- Delete ---------- */
+  .entry-actions{
+    margin-top:44px;padding-top:16px;
+    border-top:1px solid var(--panel-border);
+    display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+  }
+  .entry-actions .hint-inline{color:var(--muted);font-size:0.78rem;}
+  .danger-btn{
+    font-family:'JetBrains Mono',monospace;font-size:0.78rem;
+    background:var(--panel);color:var(--muted);
+    border:1px solid var(--panel-border);border-radius:2px;
+    padding:8px 14px;cursor:pointer;
+  }
+  .danger-btn:hover{border-color:#c9483f;color:#e79b94;}
+  .confirm-panel{
+    background:var(--panel);border:1px solid #c9483f;border-left:3px solid #c9483f;
+    padding:16px 18px;margin-top:16px;
+  }
+  .confirm-panel h3{margin:0 0 8px;font-size:1rem;}
+  .confirm-panel ul{margin:8px 0 14px;padding-left:20px;color:var(--muted);font-size:0.85rem;}
+  .confirm-panel .danger-btn.go{border-color:#c9483f;color:#e79b94;}
+  .confirm-panel .danger-btn.go:hover{background:#c9483f;color:#fff;}
 
   main{max-width:920px;margin:0 auto;padding:32px 24px 80px;}
 
@@ -266,6 +324,8 @@
   .ghost-btn.copied{background:var(--gold);border-color:var(--gold);color:var(--ink);}
 
   /* ---------- Upload / preview / publish ---------- */
+  /* display:flex would otherwise beat the browser's [hidden]{display:none} */
+  #preview-bar[hidden]{display:none;}
   #preview-bar{
     position:sticky;top:0;z-index:9;
     background:var(--panel-raised);
@@ -348,7 +408,16 @@
     <span class="mark">&#10038;</span>
     <h1>The Archive</h1>
   </div>
-  <div style="display:flex;align-items:center;gap:10px;">
+
+  <nav class="mainnav" id="mainnav">
+    <a href="#/" data-route="">Overview</a>
+    <a href="#/players" data-route="players">Players</a>
+    <a href="#/ocs" data-route="ocs">Characters</a>
+    <a href="#/stories" data-route="stories">Stories</a>
+    <a href="#/tags" data-route="tags">Tags</a>
+  </nav>
+
+  <div class="shell-actions">
     <div class="search-box">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input id="global-search" type="text" placeholder="Search players, OCs, stories, tags&hellip;" />
@@ -486,22 +555,205 @@ function viewHome(){
   return `
     <div class="eyebrow">the archive &mdash; players &middot; original characters &middot; stories</div>
     <h1 style="font-size:2.1rem;margin:6px 0 4px;">Every thread, in one place</h1>
-    <p style="color:var(--muted);max-width:60ch;">Browse by player, OC, or story below, or jump straight to a tag. Everything cross-links automatically.</p>
+    <p style="color:var(--muted);max-width:60ch;">Everything is here, and everything cross-links automatically. Use the menu above to browse one kind at a time, follow a tag to see what shares it, or open a character to pull on the threads around them.</p>
 
-    ${sectionHTML('Tags', allTags().length, `<div class="tag-cloud">${tags || '<span class="tag empty-state">no tags yet</span>'}</div>`)}
-    ${sectionHTML('Players', DB.players.length, `<div class="grid">${players.join('') || emptyNote('No players yet.')}</div>`)}
-    ${sectionHTML('OCs', DB.ocs.length, `<div class="grid">${ocs.join('') || emptyNote('No OCs yet.')}</div>`)}
-    ${sectionHTML('Stories', DB.stories.length, `<div class="grid">${stories.join('') || emptyNote('No stories yet.')}</div>`)}
+    ${sectionHTML('Tags', seeAll('#/tags', allTags().length), `<div class="tag-cloud">${tags || '<span class="tag empty-state">no tags yet</span>'}</div>`)}
+    ${sectionHTML('Players', seeAll('#/players', DB.players.length), `<div class="grid">${players.join('') || emptyNote('No players yet.')}</div>`)}
+    ${sectionHTML('Characters', seeAll('#/ocs', DB.ocs.length), `<div class="grid">${ocs.join('') || emptyNote('No OCs yet.')}</div>`)}
+    ${sectionHTML('Stories', seeAll('#/stories', DB.stories.length), `<div class="grid">${stories.join('') || emptyNote('No stories yet.')}</div>`)}
   `;
 }
 
 function emptyNote(msg){ return `<p class="empty-note">${msg}</p>`; }
+
+const seeAll = (href, count) => `${count} <a href="${href}" style="color:var(--ember-bright);">see all &rarr;</a>`;
+
+/* ---------- breadcrumbs: where this page sits in the web ---------- */
+function crumbs(trail){
+  const parts = trail.map((c, i) =>
+    i === trail.length - 1
+      ? `<span>${esc(c.label)}</span>`
+      : `<a href="${c.href}">${esc(c.label)}</a>`);
+  return `<div class="crumbs">${parts.join('<span class="sep">/</span>')}</div>`;
+}
+
+/* ---------- index pages: one per kind ---------- */
+const byName = (a, b) => (a.name || a.title || '').localeCompare(b.name || b.title || '');
+
+function viewIndex(kind){
+  if(kind === 'players'){
+    const list = DB.players.slice().sort(byName);
+    return `
+      ${crumbs([{ label: 'Overview', href: '#/' }, { label: 'Players' }])}
+      <div class="index-head">
+        <h1>Players</h1>
+        <span class="tally">${list.length} ${list.length === 1 ? 'person' : 'people'}</span>
+      </div>
+      <p style="color:var(--muted);max-width:60ch;">Everyone at the table. Open a player to see the characters they run.</p>
+      <div class="grid" style="margin-top:22px;">${
+        list.map(p => {
+          const n = DB.ocs.filter(o => o.playerId === p.id).length;
+          return cardHTML('player', p, `${n} OC${n === 1 ? '' : 's'}`, p.bio);
+        }).join('') || emptyNote('No players yet.')
+      }</div>`;
+  }
+
+  if(kind === 'ocs'){
+    const list = DB.ocs.slice().sort(byName);
+    return `
+      ${crumbs([{ label: 'Overview', href: '#/' }, { label: 'Characters' }])}
+      <div class="index-head">
+        <h1>Characters</h1>
+        <span class="tally">${list.length} OC${list.length === 1 ? '' : 's'}</span>
+      </div>
+      <p style="color:var(--muted);max-width:60ch;">Every original character in the archive, whoever plays them. Each one carries their own relationships, tags and stories.</p>
+      <div class="grid" style="margin-top:22px;">${
+        list.map(o => {
+          const player = byId(DB.players, o.playerId);
+          return cardHTML('oc', o, player ? 'played by ' + esc(player.name) : 'no player linked', o.bio);
+        }).join('') || emptyNote('No OCs yet.')
+      }</div>`;
+  }
+
+  if(kind === 'stories'){
+    const list = DB.stories.slice().sort(byName);
+    return `
+      ${crumbs([{ label: 'Overview', href: '#/' }, { label: 'Stories' }])}
+      <div class="index-head">
+        <h1>Stories</h1>
+        <span class="tally">${list.length} stor${list.length === 1 ? 'y' : 'ies'}</span>
+      </div>
+      <p style="color:var(--muted);max-width:60ch;">Arcs, sessions and one-shots. Open one to see who was there.</p>
+      <div class="grid" style="margin-top:22px;">${
+        list.map(s => cardHTML('story', s, `${(s.ocIds || []).length} in the cast`, s.summary)).join('') || emptyNote('No stories yet.')
+      }</div>`;
+  }
+
+  // tags
+  const counts = allTags().map(t => ({
+    tag: t,
+    ocs: DB.ocs.filter(o => (o.tags || []).includes(t)).length,
+    stories: DB.stories.filter(s => (s.tags || []).includes(t)).length
+  }));
+  return `
+    ${crumbs([{ label: 'Overview', href: '#/' }, { label: 'Tags' }])}
+    <div class="index-head">
+      <h1>Tags</h1>
+      <span class="tally">${counts.length} tag${counts.length === 1 ? '' : 's'}</span>
+    </div>
+    <p style="color:var(--muted);max-width:60ch;">Tags are the loose threads between entries &mdash; a place, a faction, a running joke. Open one to see everything wearing it.</p>
+    <div class="taglist" style="margin-top:22px;">${
+      counts.map(c => `
+        <a href="#/tag/${esc(c.tag)}">
+          <span class="t-name">#${esc(c.tag)}</span>
+          <span class="t-count">${c.ocs + c.stories}</span>
+        </a>`).join('') || emptyNote('Nothing is tagged yet.')
+    }</div>`;
+}
+
+/* ============================================================
+   DELETING AN ENTRY
+   ============================================================ */
+
+/* What else in the web points at this entry? Deleting has to tidy up
+   after itself, or the links it leaves behind silently drop things. */
+function deletionImpact(kind, id){
+  const effects = [];
+  if(kind === 'oc'){
+    const stories = DB.stories.filter(s => (s.ocIds || []).includes(id));
+    const rels = DB.ocs.filter(o => o.id !== id && (o.relationships || []).some(r => r.ocId === id));
+    const players = DB.players.filter(p => (p.ocIds || []).includes(id));
+    if(stories.length) effects.push(`Removed from the cast of ${stories.length} stor${stories.length === 1 ? 'y' : 'ies'}: ${stories.map(s => s.title).join(', ')}.`);
+    if(rels.length) effects.push(`${rels.length} relationship${rels.length === 1 ? '' : 's'} pointing at them will be cut: ${rels.map(o => o.name).join(', ')}.`);
+    if(players.length) effects.push(`Removed from ${players.length} player roster${players.length === 1 ? '' : 's'}.`);
+  }else if(kind === 'story'){
+    const ocs = DB.ocs.filter(o => (o.storyIds || []).includes(id));
+    if(ocs.length) effects.push(`${ocs.length} character${ocs.length === 1 ? '' : 's'} will no longer list it: ${ocs.map(o => o.name).join(', ')}.`);
+  }else{
+    const ocs = DB.ocs.filter(o => o.playerId === id);
+    if(ocs.length) effects.push(`${ocs.length} character${ocs.length === 1 ? '' : 's'} will be left without a player: ${ocs.map(o => o.name).join(', ')}. They stay in the archive.`);
+  }
+  return effects;
+}
+
+function applyDeletion(kind, id){
+  const next = { ...(PENDING || {}) };
+  const changed = (key, updated) => {
+    if(JSON.stringify(updated) !== JSON.stringify(DB[key])) next[key] = updated;
+  };
+
+  if(kind === 'oc'){
+    changed('ocs', DB.ocs
+      .filter(o => o.id !== id)
+      .map(o => (o.relationships || []).some(r => r.ocId === id)
+        ? { ...o, relationships: o.relationships.filter(r => r.ocId !== id) }
+        : o));
+    changed('stories', DB.stories.map(s => (s.ocIds || []).includes(id)
+      ? { ...s, ocIds: s.ocIds.filter(x => x !== id) }
+      : s));
+    changed('players', DB.players.map(p => (p.ocIds || []).includes(id)
+      ? { ...p, ocIds: p.ocIds.filter(x => x !== id) }
+      : p));
+  }else if(kind === 'story'){
+    changed('stories', DB.stories.filter(s => s.id !== id));
+    changed('ocs', DB.ocs.map(o => (o.storyIds || []).includes(id)
+      ? { ...o, storyIds: o.storyIds.filter(x => x !== id) }
+      : o));
+  }else{
+    changed('players', DB.players.filter(p => p.id !== id));
+    changed('ocs', DB.ocs.map(o => o.playerId === id ? { ...o, playerId: '' } : o));
+  }
+
+  setPending(next);
+}
+
+function entryActions(kind, id, name){
+  return `
+    <div class="entry-actions">
+      <button type="button" class="danger-btn" data-delete-kind="${kind}" data-delete-id="${esc(id)}">Delete this ${KIND_LABEL[COLLECTION_FOR_TYPE[kind]]}</button>
+      <span class="hint-inline">Takes effect in preview first &mdash; nothing is removed from the repo until you publish.</span>
+    </div>
+    <div id="confirm-slot"></div>`;
+}
+
+function bindEntryActions(){
+  const btn = document.querySelector('[data-delete-kind]');
+  if(!btn) return;
+  btn.addEventListener('click', () => {
+    const kind = btn.dataset.deleteKind, id = btn.dataset.deleteId;
+    const entry = byId(DB[COLLECTION_FOR_TYPE[kind]], id);
+    if(!entry) return;
+    const effects = deletionImpact(kind, id);
+    const slot = document.getElementById('confirm-slot');
+    slot.innerHTML = `
+      <div class="confirm-panel">
+        <h3>Delete &ldquo;${esc(entry.name || entry.title)}&rdquo;?</h3>
+        ${effects.length
+          ? `<p style="color:var(--muted);font-size:0.85rem;margin:0;">This also tidies up what points at them:</p>
+             <ul>${effects.map(e => `<li>${esc(e)}</li>`).join('')}</ul>`
+          : `<p style="color:var(--muted);font-size:0.85rem;">Nothing else in the archive links to this one.</p>`}
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button type="button" class="danger-btn go" id="confirm-delete">Delete</button>
+          <button type="button" class="ghost-btn" id="cancel-delete">Keep it</button>
+        </div>
+        <p style="color:var(--muted);font-size:0.78rem;margin:12px 0 0;">
+          You'll see the archive without them straight away. Discard in the preview bar puts everything back.
+        </p>
+      </div>`;
+    document.getElementById('cancel-delete').addEventListener('click', () => { slot.innerHTML = ''; });
+    document.getElementById('confirm-delete').addEventListener('click', () => {
+      applyDeletion(kind, id);
+      location.hash = kind === 'player' ? '#/players' : kind === 'oc' ? '#/ocs' : '#/stories';
+    });
+  });
+}
 
 function viewPlayer(id){
   const p = byId(DB.players, id);
   if(!p) return notFound('player', id);
   const ocs = DB.ocs.filter(o => o.playerId === id);
   return `
+    ${crumbs([{label:'Overview',href:'#/'},{label:'Players',href:'#/players'},{label:p.name}])}
     <div class="detail-header">
       ${p.image ? `<img src="${esc(p.image)}" alt="${esc(p.name)}">` : ''}
       <div>
@@ -514,6 +766,7 @@ function viewPlayer(id){
     ${sectionHTML('OCs played', ocs.length, `<div class="grid">${
       ocs.map(o => cardHTML('oc', o, '', o.bio)).join('') || emptyNote('No OCs linked to this player yet.')
     }</div>`)}
+    ${entryActions('player', p.id, p.name)}
   `;
 }
 
@@ -525,6 +778,7 @@ function viewOC(id){
   const rels = (o.relationships||[]).map(r => ({...r, target: byId(DB.ocs, r.ocId)})).filter(r => r.target);
 
   return `
+    ${crumbs([{label:'Overview',href:'#/'},{label:'Characters',href:'#/ocs'},{label:o.name}])}
     <div class="detail-header">
       ${o.image ? `<img src="${esc(o.image)}" alt="${esc(o.name)}">` : ''}
       <div>
@@ -540,6 +794,7 @@ function viewOC(id){
     ${sectionHTML('Appears in', stories.length, `<div class="grid">${
       stories.map(s => cardHTML('story', s, '', s.summary)).join('') || emptyNote('Not linked to any stories yet.')
     }</div>`)}
+    ${entryActions('oc', o.id, o.name)}
   `;
 }
 
@@ -566,6 +821,7 @@ function viewStory(id){
   if(!s) return notFound('story', id);
   const cast = DB.ocs.filter(o => (s.ocIds||[]).includes(o.id));
   return `
+    ${crumbs([{label:'Overview',href:'#/'},{label:'Stories',href:'#/stories'},{label:s.title}])}
     <div class="detail-header">
       ${s.image ? `<img src="${esc(s.image)}" alt="${esc(s.title)}">` : ''}
       <div>
@@ -579,6 +835,7 @@ function viewStory(id){
     ${sectionHTML('Cast', cast.length, `<div class="grid">${
       cast.map(o => cardHTML('oc', o, '', o.bio)).join('') || emptyNote('No cast linked yet.')
     }</div>`)}
+    ${entryActions('story', s.id, s.title)}
   `;
 }
 
@@ -586,6 +843,7 @@ function viewTag(tag){
   const ocs = DB.ocs.filter(o => (o.tags||[]).includes(tag));
   const stories = DB.stories.filter(s => (s.tags||[]).includes(tag));
   return `
+    ${crumbs([{label:'Overview',href:'#/'},{label:'Tags',href:'#/tags'},{label:'#'+tag}])}
     <div class="eyebrow">tag</div>
     <h1 style="font-size:1.8rem;">#${esc(tag)}</h1>
     ${sectionHTML('OCs', ocs.length, `<div class="grid">${ocs.map(o=>cardHTML('oc',o,'',o.bio)).join('') || emptyNote('No OCs with this tag.')}</div>`)}
@@ -1155,12 +1413,17 @@ function render(){
 
   if(parts.length === 0){
     app.innerHTML = viewHome();
+  } else if(['players','ocs','stories','tags'].includes(parts[0]) && !parts[1]){
+    app.innerHTML = viewIndex(parts[0]);
   } else if(parts[0] === 'player' && parts[1]){
     app.innerHTML = viewPlayer(decodeURIComponent(parts[1]));
+    bindEntryActions();
   } else if(parts[0] === 'oc' && parts[1]){
     app.innerHTML = viewOC(decodeURIComponent(parts[1]));
+    bindEntryActions();
   } else if(parts[0] === 'story' && parts[1]){
     app.innerHTML = viewStory(decodeURIComponent(parts[1]));
+    bindEntryActions();
   } else if(parts[0] === 'tag' && parts[1]){
     app.innerHTML = viewTag(decodeURIComponent(parts[1]));
   } else if(parts[0] === 'search' && parts[1]){
@@ -1176,7 +1439,22 @@ function render(){
     app.innerHTML = notFound('page', parts.join('/'));
   }
   renderPreviewBar();
+  highlightNav(parts);
   window.scrollTo(0,0);
+}
+
+/* Light up whichever section of the nav you're currently inside,
+   including from a detail page one level down. */
+function highlightNav(parts){
+  const SECTION_OF = {
+    '': '', players: 'players', player: 'players',
+    ocs: 'ocs', oc: 'ocs', stories: 'stories', story: 'stories',
+    tags: 'tags', tag: 'tags'
+  };
+  const here = SECTION_OF[parts[0] || ''];
+  document.querySelectorAll('#mainnav a').forEach(a => {
+    a.classList.toggle('active', here !== undefined && a.dataset.route === here);
+  });
 }
 
 window.addEventListener('hashchange', render);
