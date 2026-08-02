@@ -1,16 +1,85 @@
 [
   {
-    "id": "the-ember-heist",
-    "title": "The Ember Heist",
-    "summary": "EXAMPLE ENTRY — replace or delete me. A late-night job on the guild vault goes sideways when an old rivalry resurfaces.",
-    "date": "",
+    "id": "rivers-end-the-beginning",
+    "title": "River's End: The Beginning",
+    "summary": "Five journeys converged on one point in history. In a rickety wagon the five of them sat, each on the way to their own adventure — unaware of the road ahead, and unaware that peril was driving the carriage.",
+    "date": "Session 1",
     "image": "",
     "ocIds": [
-      "lyra",
-      "kade"
+      "bhor",
+      "mele",
+      "dorian",
+      "teek",
+      "forsyth",
+      "tom-thistlethumb",
+      "esther-thistlethumb",
+      "the-village-chief"
     ],
     "tags": [
-      "heist"
+      "rivers-end",
+      "party-of-five",
+      "arc-opener"
+    ]
+  },
+  {
+    "id": "ambush-in-the-shady-glen",
+    "title": "Ambush in the Shady Glen",
+    "summary": "An explosion rocked the wagon and bandits leapt from the woods, led by an extremely annoying wizard who blinked from space to space. The party was at its most divided here — some surrendered to the guards, others ran for the river.",
+    "date": "Session 1",
+    "image": "",
+    "ocIds": [
+      "bhor",
+      "mele",
+      "dorian",
+      "teek",
+      "forsyth",
+      "tom-thistlethumb",
+      "esther-thistlethumb"
+    ],
+    "tags": [
+      "rivers-end",
+      "combat",
+      "bandits"
+    ]
+  },
+  {
+    "id": "the-castle-of-clones",
+    "title": "The Castle of Clones",
+    "summary": "A group of individuals who looked just like the party were causing trouble near River's End. The party laid wait at the castle, caught them up, and found a werewolf among them. One clone escaped — nobody can remember which. In the tower they found ledgers indicting Tom Thistlethumb.",
+    "date": "Session 2",
+    "image": "",
+    "ocIds": [
+      "bhor",
+      "mele",
+      "dorian",
+      "teek",
+      "forsyth",
+      "the-crazed-old-man",
+      "the-kind-tiefling"
+    ],
+    "tags": [
+      "clones",
+      "werewolf",
+      "combat",
+      "loose-end"
+    ]
+  },
+  {
+    "id": "the-road-to-valen",
+    "title": "The Road to Valen",
+    "summary": "With names still to clear and at least one more twin to kill, the party followed the trail toward Valen. Here Forsyth left them, reaching out a hand to one of the village widows.",
+    "date": "Session 3",
+    "image": "",
+    "ocIds": [
+      "bhor",
+      "mele",
+      "dorian",
+      "teek",
+      "tom-thistlethumb"
+    ],
+    "tags": [
+      "valen",
+      "farewell"
     ]
   }
 ]
