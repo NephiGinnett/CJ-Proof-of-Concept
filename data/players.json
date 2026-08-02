@@ -1,18 +1,49 @@
 [
   {
-    "id": "zoe",
-    "name": "Zoe",
-    "bio": "EXAMPLE ENTRY — replace or delete me. Game designer and occasional GM.",
+    "id": "player-one",
+    "name": "Player One",
+    "bio": "SAMPLE DATA — rename me. Plays Bhor.",
     "image": "",
     "ocIds": [
-      "lyra",
-      "kade"
+      "bhor"
     ]
   },
   {
-    "id": "example-player-2",
-    "name": "Another Player",
-    "bio": "EXAMPLE ENTRY — replace or delete me.",
+    "id": "player-two",
+    "name": "Player Two",
+    "bio": "SAMPLE DATA — rename me. Plays Mele, and played Forsyth until Valen.",
+    "image": "",
+    "ocIds": []
+  },
+  {
+    "id": "player-three",
+    "name": "Player Three",
+    "bio": "SAMPLE DATA — rename me. Plays Dorian.",
+    "image": "",
+    "ocIds": [
+      "dorian"
+    ]
+  },
+  {
+    "id": "player-four",
+    "name": "Player Four",
+    "bio": "SAMPLE DATA — rename me. Plays Teek.",
+    "image": "",
+    "ocIds": [
+      "teek"
+    ]
+  },
+  {
+    "id": "the-gm",
+    "name": "The GM",
+    "bio": "SAMPLE DATA — rename me. Runs the table and everyone the party runs into.",
+    "image": "",
+    "ocIds": []
+  },
+  {
+    "id": "player-five",
+    "name": "Player Five",
+    "bio": "SAMPLE DATA — a player who hasn't added a character yet, so you can see what an empty roster looks like.",
     "image": "",
     "ocIds": []
   }
