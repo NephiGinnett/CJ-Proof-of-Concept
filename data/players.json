@@ -26,8 +26,8 @@
   },
   {
     "id": "player-four",
-    "name": "Player Four",
-    "bio": "SAMPLE DATA — rename me. Plays Teek.",
+    "name": "Kyle",
+    "bio": "Plays Teek.",
     "image": "",
     "ocIds": [
       "teek"
