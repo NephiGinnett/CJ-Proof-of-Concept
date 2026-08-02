@@ -13,6 +13,20 @@ entry show where you are, and search in the top right looks across names, bios a
 Nothing has to be maintained twice. Give a character the right `playerId` and `storyIds` and they
 appear on that player's page and in that story's cast on their own.
 
+## Editing an entry
+
+Open the character, player or story and press **Edit this OC / player / story** at the bottom of
+the page. The form opens with everything already filled in — bio, tags, story list, relationships —
+so you change what you want and press **Save changes**.
+
+One thing stays put: the entry's **id**. It's what the page address is built from and what every
+cross-link points at, so a rename changes the display name only. If you genuinely need a different
+id, delete the entry and add it again. (Everything else, including fields the form doesn't show
+you, is left exactly as it was.)
+
+Like everything else, the change lands in preview first. You see it on the site immediately,
+nothing is written to the repo until you press **Publish**, and **Discard** reverts it.
+
 ## Deleting an entry
 
 Open the character, player or story and press **Delete this OC / player / story** at the bottom of
@@ -144,7 +158,8 @@ It checks two different things:
   doesn't crash the site, it just makes an entry quietly disappear from a list, which is easy to
   miss by eye. This catches it.
 - **The site itself.** Every page type opens, the menu and breadcrumbs point where they should,
-  deleting an entry tidies up every link into it, the reverse lists derive themselves correctly, the
+  editing an entry keeps its id and its links intact, deleting one tidies up every link into it,
+  the reverse lists derive themselves correctly, the
   **+ Add entry** builder produces JSON the site can read back, uploading a file previews it and
   discarding it puts the published data back, and text with odd characters in it (quotes, angle
   brackets) stays text instead of turning into markup.

@@ -802,7 +802,7 @@ describe('Upload, preview, publish', () => {
     await nav('#/add/story');
     type('f-name', 'Built Not Uploaded');
     type('f-bio', 'Made in the form, straight into preview.');
-    D.getElementById('add-preview-btn').click();
+    D.getElementById('entry-submit-btn').click();
     await new Promise(r => setTimeout(r, 80));
     eq(W.location.hash, '#/story/built-not-uploaded', 'adding to preview should open the new entry');
     eq(q('h1').textContent, 'Built Not Uploaded', 'the built entry has no page');
@@ -815,7 +815,7 @@ describe('Upload, preview, publish', () => {
     clearPreview();
     await nav('#/add/oc');
     type('f-name', RAW.ocs[0].name);
-    D.getElementById('add-preview-btn').click();
+    D.getElementById('entry-submit-btn').click();
     await new Promise(r => setTimeout(r, 60));
     assert(/already/i.test(D.getElementById('add-status').textContent),
       'adding a duplicate id should be refused with an explanation');
@@ -897,7 +897,112 @@ describe('Getting around', () => {
 });
 
 /* ============================================================
-   8. DELETING ENTRIES
+   8. EDITING ENTRIES
+   ============================================================ */
+describe('Editing an entry', () => {
+  it('every entry offers a way to edit it', async () => {
+    clearPreview();
+    for(const [kind, id] of [['oc', RAW.ocs[0].id], ['player', RAW.players[0].id], ['story', RAW.stories[0].id]]){
+      await nav(`#/${kind}/${id}`);
+      const link = q(`a[href="#/edit/${kind}/${id}"]`);
+      assert(link, `no edit link on the ${kind} page`);
+    }
+  });
+
+  it('the form opens filled in with what is already there', async () => {
+    const oc = RAW.ocs.find(o => (o.tags || []).length && o.bio) || RAW.ocs[0];
+    await nav(`#/edit/oc/${oc.id}`);
+    eq(D.getElementById('f-name').value, oc.name, 'name field');
+    eq(D.getElementById('f-bio').value, oc.bio || '', 'bio field');
+    eq(D.getElementById('f-playerid').value, oc.playerId || '', 'player id field');
+    eq(D.getElementById('f-tags').value, (oc.tags || []).join(', '), 'tags field');
+    eq(D.getElementById('f-storyids').value, (oc.storyIds || []).join(', '), 'story ids field');
+    eq(D.querySelectorAll('#rel-rows .rel-row').length, (oc.relationships || []).length, 'relationship rows');
+  });
+
+  it('a story form opens filled in too', async () => {
+    const s = RAW.stories[0];
+    await nav(`#/edit/story/${s.id}`);
+    eq(D.getElementById('f-name').value, s.title, 'title field');
+    eq(D.getElementById('f-bio').value, s.summary || '', 'summary field');
+    eq(D.getElementById('f-ocids').value, (s.ocIds || []).join(', '), 'cast field');
+  });
+
+  it('saving a change shows up on the entry straight away', async () => {
+    clearPreview();
+    const oc = RAW.ocs[0];
+    await nav(`#/edit/oc/${oc.id}`);
+    type('f-bio', 'Rewritten by the self-test.');
+    D.getElementById('entry-submit-btn').click();
+    await new Promise(r => setTimeout(r, 80));
+    eq(W.location.hash, `#/oc/${oc.id}`, 'saving should take you back to the entry');
+    assert(appText().includes('Rewritten by the self-test.'), 'the new bio is not on the page');
+    eq(bar().hidden, false, 'an edit should show as unpublished');
+  });
+
+  it('editing changes one entry and leaves the rest alone', async () => {
+    await nav('#/ocs');
+    eq(cardLinks('oc').length, RAW.ocs.length, 'editing must not add or drop entries');
+  });
+
+  it('the id is held fixed, so links keep working', async () => {
+    clearPreview();
+    const oc = RAW.ocs[0];
+    await nav(`#/edit/oc/${oc.id}`);
+    type('f-name', 'A Completely Different Name');
+    D.getElementById('entry-submit-btn').click();
+    await new Promise(r => setTimeout(r, 80));
+    eq(W.location.hash, `#/oc/${oc.id}`, 'the entry should keep its address after a rename');
+    eq(q('h1').textContent, 'A Completely Different Name', 'the new name should show');
+    // everything that pointed at it still resolves
+    for(const s of RAW.stories.filter(s => (s.ocIds || []).includes(oc.id))){
+      await nav(`#/story/${s.id}`);
+      assert(cardFor(`#/oc/${oc.id}`), `renaming broke the link from story "${s.id}"`);
+    }
+    await nav('#/upload');
+    const report = q('.report');
+    if(report) eq(report.querySelectorAll('.flag.err').length, 0, 'a rename should not break anything');
+  });
+
+  it('fields the form does not own are left alone', async () => {
+    clearPreview();
+    const player = RAW.players.find(p => (p.ocIds || []).length);
+    if(!player) return;
+    await nav(`#/edit/player/${player.id}`);
+    type('f-bio', 'New bio, same roster.');
+    D.getElementById('entry-submit-btn').click();
+    await new Promise(r => setTimeout(r, 80));
+    const saved = W.eval(`JSON.stringify(DB.players.find(p => p.id === ${JSON.stringify(player.id)}))`);
+    const obj = JSON.parse(saved);
+    eq(obj.bio, 'New bio, same roster.', 'the edited field');
+    eq((obj.ocIds || []).join(','), (player.ocIds || []).join(','),
+      'ocIds is not on the form, so editing a player should not wipe it');
+  });
+
+  it('an edit can be discarded like anything else', async () => {
+    clearPreview();
+    const oc = RAW.ocs[0];
+    await nav(`#/edit/oc/${oc.id}`);
+    type('f-bio', 'This should not survive.');
+    D.getElementById('entry-submit-btn').click();
+    await new Promise(r => setTimeout(r, 80));
+    bar().querySelector('#pv-discard').click();
+    await new Promise(r => setTimeout(r, 60));
+    await nav(`#/oc/${oc.id}`);
+    assert(!appText().includes('This should not survive.'), 'the discarded edit is still showing');
+    if(oc.bio) assert(appText().includes(oc.bio), 'the original bio did not come back');
+    clearPreview();
+  });
+
+  it('editing something that does not exist says so', async () => {
+    await nav('#/edit/oc/no-such-character');
+    assert(appText().toLowerCase().includes('not found') || appText().includes('No oc called'),
+      'editing a missing entry should show the not-found page');
+  });
+});
+
+/* ============================================================
+   9. DELETING ENTRIES
    ============================================================ */
 async function deleteEntry(kind, id){
   await nav(`#/${kind}/${id}`);
@@ -1019,7 +1124,7 @@ describe('Deleting an entry', () => {
 });
 
 /* ============================================================
-   9. HOSTILE INPUT
+   10. HOSTILE INPUT
    ============================================================ */
 describe('Odd characters stay text, not markup', () => {
   it('an entry with HTML in its name renders as plain text', async () => {

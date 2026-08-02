@@ -760,10 +760,12 @@ function applyDeletion(kind, id){
 }
 
 function entryActions(kind, id, name){
+  const what = KIND_LABEL[COLLECTION_FOR_TYPE[kind]];
   return `
     <div class="entry-actions">
-      <button type="button" class="danger-btn" data-delete-kind="${kind}" data-delete-id="${esc(id)}">Delete this ${KIND_LABEL[COLLECTION_FOR_TYPE[kind]]}</button>
-      <span class="hint-inline">Takes effect in preview first &mdash; nothing is removed from the repo until you publish.</span>
+      <a class="ghost-btn" href="#/edit/${kind}/${esc(id)}">Edit this ${what}</a>
+      <button type="button" class="danger-btn" data-delete-kind="${kind}" data-delete-id="${esc(id)}">Delete this ${what}</button>
+      <span class="hint-inline">Both take effect in preview first &mdash; nothing changes in the repo until you publish.</span>
     </div>
     <div id="confirm-slot"></div>`;
 }
@@ -931,26 +933,33 @@ function matches(item, q, nameField='name'){
 const slugify = s => (s||'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
 const listFromCSV = s => (s||'').split(',').map(x=>x.trim()).filter(Boolean);
 
-function viewAdd(type){
+/* One form serves both "add" and "edit". In edit mode the id is held fixed:
+   every cross-link and every URL points at it, so letting a rename change it
+   would quietly break the web this whole thing is built on. */
+function viewEntryForm(type, existing){
   type = type || 'player';
-  const tabs = ['player','oc','story'].map(t =>
-    `<a href="#/add/${t}" class="type-tab ${t===type?'active':''}">${t==='oc'?'OC':t}</a>`).join('');
+  const editing = !!existing;
+  const v   = f => esc(existing && existing[f] != null ? existing[f] : '');
+  const csv = f => esc(((existing && existing[f]) || []).join(', '));
+
+  const tabs = editing ? '' : `<div class="type-tabs">${['player','oc','story'].map(t =>
+    `<a href="#/add/${t}" class="type-tab ${t===type?'active':''}">${t==='oc'?'OC':t}</a>`).join('')}</div>`;
 
   let fieldsHTML = '';
   if(type === 'player'){
     fieldsHTML = `
-      <div class="field"><label>Name</label><input type="text" id="f-name" placeholder="Display name"></div>
-      <div class="field"><label>Bio</label><textarea id="f-bio" placeholder="A sentence or two."></textarea></div>
-      <div class="field"><label>Image URL <span class="hint">optional</span></label><input type="text" id="f-image" placeholder="https://&hellip;"></div>
+      <div class="field"><label>Name</label><input type="text" id="f-name" placeholder="Display name" value="${v('name')}"></div>
+      <div class="field"><label>Bio</label><textarea id="f-bio" placeholder="A sentence or two.">${v('bio')}</textarea></div>
+      <div class="field"><label>Image URL <span class="hint">optional</span></label><input type="text" id="f-image" placeholder="https://&hellip;" value="${v('image')}"></div>
       <p class="builder-note">You don't need to fill in ocIds &mdash; that fills itself in once an OC lists this player's id under playerId.</p>`;
   } else if(type === 'oc'){
     fieldsHTML = `
-      <div class="field"><label>Name</label><input type="text" id="f-name" placeholder="Character name"></div>
-      <div class="field"><label>Player id</label><input type="text" id="f-playerid" placeholder="e.g. zoe &mdash; must match an existing player's id"></div>
-      <div class="field"><label>Bio</label><textarea id="f-bio" placeholder="Who are they?"></textarea></div>
-      <div class="field"><label>Tags <span class="hint">comma separated</span></label><input type="text" id="f-tags" placeholder="tavern-crew, redemption-arc"></div>
-      <div class="field"><label>Story ids <span class="hint">comma separated, must match existing story ids</span></label><input type="text" id="f-storyids" placeholder="the-ember-heist"></div>
-      <div class="field"><label>Image URL <span class="hint">optional</span></label><input type="text" id="f-image" placeholder="https://&hellip;"></div>
+      <div class="field"><label>Name</label><input type="text" id="f-name" placeholder="Character name" value="${v('name')}"></div>
+      <div class="field"><label>Player id</label><input type="text" id="f-playerid" placeholder="e.g. zoe &mdash; must match an existing player's id" value="${v('playerId')}"></div>
+      <div class="field"><label>Bio</label><textarea id="f-bio" placeholder="Who are they?">${v('bio')}</textarea></div>
+      <div class="field"><label>Tags <span class="hint">comma separated</span></label><input type="text" id="f-tags" placeholder="tavern-crew, redemption-arc" value="${csv('tags')}"></div>
+      <div class="field"><label>Story ids <span class="hint">comma separated, must match existing story ids</span></label><input type="text" id="f-storyids" placeholder="the-ember-heist" value="${csv('storyIds')}"></div>
+      <div class="field"><label>Image URL <span class="hint">optional</span></label><input type="text" id="f-image" placeholder="https://&hellip;" value="${v('image')}"></div>
       <div class="field">
         <label>Relationships</label>
         <div id="rel-rows"></div>
@@ -958,26 +967,43 @@ function viewAdd(type){
       </div>`;
   } else {
     fieldsHTML = `
-      <div class="field"><label>Title</label><input type="text" id="f-name" placeholder="Story title"></div>
-      <div class="field"><label>Summary</label><textarea id="f-bio" placeholder="What happened?"></textarea></div>
-      <div class="field"><label>Date <span class="hint">optional, any format</span></label><input type="text" id="f-date" placeholder="e.g. Session 12, or 2026-03-01"></div>
-      <div class="field"><label>Tags <span class="hint">comma separated</span></label><input type="text" id="f-tags" placeholder="heist"></div>
-      <div class="field"><label>Cast: OC ids <span class="hint">comma separated, must match existing OC ids</span></label><input type="text" id="f-ocids" placeholder="lyra, kade"></div>
-      <div class="field"><label>Image URL <span class="hint">optional</span></label><input type="text" id="f-image" placeholder="https://&hellip;"></div>`;
+      <div class="field"><label>Title</label><input type="text" id="f-name" placeholder="Story title" value="${v('title')}"></div>
+      <div class="field"><label>Summary</label><textarea id="f-bio" placeholder="What happened?">${v('summary')}</textarea></div>
+      <div class="field"><label>Date <span class="hint">optional, any format</span></label><input type="text" id="f-date" placeholder="e.g. Session 12, or 2026-03-01" value="${v('date')}"></div>
+      <div class="field"><label>Tags <span class="hint">comma separated</span></label><input type="text" id="f-tags" placeholder="heist" value="${csv('tags')}"></div>
+      <div class="field"><label>Cast: OC ids <span class="hint">comma separated, must match existing OC ids</span></label><input type="text" id="f-ocids" placeholder="lyra, kade" value="${csv('ocIds')}"></div>
+      <div class="field"><label>Image URL <span class="hint">optional</span></label><input type="text" id="f-image" placeholder="https://&hellip;" value="${v('image')}"></div>`;
   }
 
+  const label = existing ? (existing.name || existing.title) : '';
+  const head = editing
+    ? `${crumbs([{label:'Overview',href:'#/'},{label:INDEX_LABEL[type],href:INDEX_HREF[type]},{label,href:`#/${type}/${existing.id}`},{label:'Edit'}])}
+       <div class="eyebrow">edit</div>
+       <h1 style="font-size:1.8rem;margin:6px 0 4px;">Editing ${esc(label)}</h1>
+       <p style="color:var(--muted);max-width:60ch;">
+         Change anything you like and press <strong>Save changes</strong> &mdash; you'll see it on the
+         site straight away, and nothing is written to the repo until you publish.
+       </p>
+       <p class="builder-note">
+         Its id stays <span class="mono">${esc(existing.id)}</span>. That's what its page address and
+         every link to it are built from, so renaming changes the display name only. If you need a
+         different id, delete this one and add it again.
+       </p>`
+    : `<div class="eyebrow">add entry</div>
+       <h1 style="font-size:1.8rem;margin:6px 0 4px;">Build a new ${type === 'oc' ? 'OC' : type}</h1>
+       <p style="color:var(--muted);max-width:60ch;">Fill this in, then <strong>Add to preview</strong> to see it on the site straight away. Nothing is saved until you publish. (Or copy the JSON and paste it into <span class="mono">data/${COLLECTION_FOR_TYPE[type]}.json</span> by hand, if you'd rather.)</p>`;
+
   return `
-    <div class="eyebrow">add entry</div>
-    <h1 style="font-size:1.8rem;margin:6px 0 4px;">Build a new ${type === 'oc' ? 'OC' : type}</h1>
-    <p style="color:var(--muted);max-width:60ch;">Fill this in, then <strong>Add to preview</strong> to see it on the site straight away. Nothing is saved until you publish. (Or copy the JSON and paste it into <span class="mono">data/${COLLECTION_FOR_TYPE[type]}.json</span> by hand, if you'd rather.)</p>
-    <div class="type-tabs">${tabs}</div>
+    ${head}
+    ${tabs}
     <div class="builder-grid">
       <div>${fieldsHTML}</div>
       <div>
         <div class="eyebrow" style="margin-bottom:8px;">live preview</div>
         <div class="json-preview" id="json-out">{}</div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-          <button class="copy-btn" id="add-preview-btn">Add to preview</button>
+          <button class="copy-btn" id="entry-submit-btn">${editing ? 'Save changes' : 'Add to preview'}</button>
+          ${editing ? `<a class="ghost-btn" href="#/${type}/${esc(existing.id)}" style="margin-top:12px;">Cancel</a>` : ''}
           <button class="ghost-btn" id="copy-json-btn" style="margin-top:12px;">Copy JSON</button>
         </div>
         <div class="status-line" id="add-status"></div>
@@ -986,17 +1012,21 @@ function viewAdd(type){
   `;
 }
 
-function bindAddForm(type){
+const INDEX_LABEL = { player: 'Players', oc: 'Characters', story: 'Stories' };
+const INDEX_HREF  = { player: '#/players', oc: '#/ocs', story: '#/stories' };
+
+function bindEntryForm(type, existing){
   const out = document.getElementById('json-out');
   const relRows = document.getElementById('rel-rows');
+  const editing = !!existing;
   let built = null;   // the entry as currently described by the form
 
   function addRelRow(ocId='', label=''){
     const row = document.createElement('div');
     row.className = 'rel-row';
     row.innerHTML = `
-      <input type="text" class="rel-ocid" placeholder="oc id" value="${ocId}">
-      <input type="text" class="rel-label" placeholder="label, e.g. rival" value="${label}">
+      <input type="text" class="rel-ocid" placeholder="oc id" value="${esc(ocId)}">
+      <input type="text" class="rel-label" placeholder="label, e.g. rival" value="${esc(label)}">
       <button type="button" class="rel-remove">&times;</button>`;
     row.querySelector('.rel-remove').addEventListener('click', () => { row.remove(); update(); });
     row.querySelectorAll('input').forEach(i => i.addEventListener('input', update));
@@ -1004,47 +1034,65 @@ function bindAddForm(type){
   }
   if(type === 'oc'){
     document.getElementById('rel-add-btn').addEventListener('click', () => addRelRow());
+    if(editing) (existing.relationships || []).forEach(r => addRelRow(r.ocId, r.label));
   }
 
-  function update(){
+  /* Only the fields this form actually owns. Anything else on an existing
+     entry (a player's derived ocIds, say) is left exactly as it was. */
+  function fieldValues(){
     const val = id => (document.getElementById(id)?.value || '').trim();
-    let obj = {};
     if(type === 'player'){
-      obj = { id: slugify(val('f-name')) || 'your-id-here', name: val('f-name') || 'Display Name',
-        bio: val('f-bio'), image: val('f-image'), ocIds: [] };
-    } else if(type === 'oc'){
+      return { name: val('f-name'), bio: val('f-bio'), image: val('f-image') };
+    }
+    if(type === 'oc'){
       const rels = [...relRows.querySelectorAll('.rel-row')].map(r => ({
         ocId: slugify(r.querySelector('.rel-ocid').value) || r.querySelector('.rel-ocid').value.trim(),
         label: r.querySelector('.rel-label').value.trim()
       })).filter(r => r.ocId);
-      obj = { id: slugify(val('f-name')) || 'your-oc-id', name: val('f-name') || 'Display Name',
-        playerId: slugify(val('f-playerid')) || val('f-playerid'),
+      return { name: val('f-name'), playerId: slugify(val('f-playerid')) || val('f-playerid'),
         bio: val('f-bio'), image: val('f-image'),
         tags: listFromCSV(val('f-tags')), storyIds: listFromCSV(val('f-storyids')).map(slugify),
         relationships: rels };
-    } else {
-      obj = { id: slugify(val('f-name')) || 'your-story-id', title: val('f-name') || 'Story Title',
-        summary: val('f-bio'), date: val('f-date'), image: val('f-image'),
-        ocIds: listFromCSV(val('f-ocids')).map(slugify), tags: listFromCSV(val('f-tags')) };
     }
-    built = obj;
-    out.textContent = JSON.stringify(obj, null, 2) + ',';
+    return { title: val('f-name'), summary: val('f-bio'), date: val('f-date'), image: val('f-image'),
+      ocIds: listFromCSV(val('f-ocids')).map(slugify), tags: listFromCSV(val('f-tags')) };
+  }
+
+  function update(){
+    const fields = fieldValues();
+    if(editing){
+      built = { ...existing, ...fields };
+    }else if(type === 'player'){
+      built = { id: slugify(fields.name) || 'your-id-here', name: fields.name || 'Display Name',
+        bio: fields.bio, image: fields.image, ocIds: [] };
+    }else if(type === 'oc'){
+      built = { id: slugify(fields.name) || 'your-oc-id', name: fields.name || 'Display Name', ...fields };
+      built.name = fields.name || 'Display Name';
+    }else{
+      built = { id: slugify(fields.title) || 'your-story-id', ...fields };
+      built.title = fields.title || 'Story Title';
+    }
+    out.textContent = JSON.stringify(built, null, 2) + (editing ? '' : ',');
   }
 
   document.querySelectorAll('#app input, #app textarea').forEach(el => el.addEventListener('input', update));
   update();
 
-  document.getElementById('add-preview-btn').addEventListener('click', () => {
+  document.getElementById('entry-submit-btn').addEventListener('click', () => {
     const status = document.getElementById('add-status');
     const key = COLLECTION_FOR_TYPE[type];
     const nameField = type === 'story' ? 'title' : 'name';
 
     if(!built || !built[nameField] || /^(Display Name|Story Title)$/.test(built[nameField]))
       return setStatus(status, 'bad', `Give it a ${nameField} first.`);
-    if(byId(DB[key], built.id))
-      return setStatus(status, 'bad', `There's already a ${KIND_LABEL[key]} with the id "${built.id}". Pick a different name, or edit the existing one.`);
 
-    setPending({ ...(PENDING || {}), [key]: [...DB[key], built] });
+    if(editing){
+      setPending({ ...(PENDING || {}), [key]: DB[key].map(x => x.id === existing.id ? built : x) });
+    }else{
+      if(byId(DB[key], built.id))
+        return setStatus(status, 'bad', `There's already a ${KIND_LABEL[key]} with the id "${built.id}". Pick a different name, or edit the existing one.`);
+      setPending({ ...(PENDING || {}), [key]: [...DB[key], built] });
+    }
     location.hash = `#/${type}/${built.id}`;
   });
 
@@ -1482,8 +1530,17 @@ function render(){
     app.innerHTML = viewSearch(decodeURIComponent(parts[1]));
   } else if(parts[0] === 'add'){
     const type = parts[1] || 'player';
-    app.innerHTML = viewAdd(type);
-    bindAddForm(type);
+    app.innerHTML = viewEntryForm(type, null);
+    bindEntryForm(type, null);
+  } else if(parts[0] === 'edit' && parts[1] && parts[2]){
+    const type = parts[1];
+    const entry = COLLECTION_FOR_TYPE[type] ? byId(DB[COLLECTION_FOR_TYPE[type]], decodeURIComponent(parts[2])) : null;
+    if(!entry){
+      app.innerHTML = notFound(type, decodeURIComponent(parts[2]));
+    }else{
+      app.innerHTML = viewEntryForm(type, entry);
+      bindEntryForm(type, entry);
+    }
   } else if(parts[0] === 'upload'){
     app.innerHTML = viewUpload();
     bindUpload();
