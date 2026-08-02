@@ -2,6 +2,31 @@
 
 A wiki for tracking players, their OCs, and the stories they've been in — all cross-linked automatically. No app to install, no database, no build step. Just three JSON files and one HTML file.
 
+## Getting around
+
+The menu across the top is the way in: **Overview** for everything at once, then **Players**,
+**Characters**, **Stories** and **Tags** for one kind at a time. Every page cross-links to the
+others — a character links to their player, the stories they're in, and everyone they have a
+relationship with; a story lists its cast; a tag gathers everything wearing it. Breadcrumbs on each
+entry show where you are, and search in the top right looks across names, bios and tags at once.
+
+Nothing has to be maintained twice. Give a character the right `playerId` and `storyIds` and they
+appear on that player's page and in that story's cast on their own.
+
+## Deleting an entry
+
+Open the character, player or story and press **Delete this OC / player / story** at the bottom of
+the page.
+
+Because everything is cross-linked, it tells you what else it will tidy up before it does anything
+— the stories they'll be dropped from, the relationships that will be cut, the rosters they'll come
+off — and asks you to confirm. Deleting a player leaves their characters in the archive rather than
+taking them with it; they just show as having no player.
+
+Like an upload, the deletion happens in preview first. The site shows you the archive without them,
+and nothing leaves the repo until you press **Publish**. **Discard** in the preview bar brings
+everything straight back.
+
 ## Uploading a file
 
 Click **↑ Upload** in the top nav, then **Choose files** (or drag them onto the page). Give it
@@ -118,7 +143,8 @@ It checks two different things:
   actually exists — a `playerId`, `storyIds`, a story's `ocIds`, a relationship. A typo'd id
   doesn't crash the site, it just makes an entry quietly disappear from a list, which is easy to
   miss by eye. This catches it.
-- **The site itself.** Every page type opens, the reverse lists derive themselves correctly, the
+- **The site itself.** Every page type opens, the menu and breadcrumbs point where they should,
+  deleting an entry tidies up every link into it, the reverse lists derive themselves correctly, the
   **+ Add entry** builder produces JSON the site can read back, uploading a file previews it and
   discarding it puts the published data back, and text with odd characters in it (quotes, angle
   brackets) stays text instead of turning into markup.
