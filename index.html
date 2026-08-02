@@ -502,10 +502,14 @@ const CONFIG_KEY  = 'archive:publish-config';
 const TOKEN_KEY   = 'archive:github-token';
 
 async function loadData(){
+  // no-store matters: GitHub Pages serves these with Cache-Control max-age=600,
+  // so without it the browser keeps showing the data from before you published
+  // for up to ten minutes — publish succeeds, and your change appears to vanish.
+  const grab = path => fetch(path, { cache: 'no-store' }).then(r => r.json());
   const [players, ocs, stories] = await Promise.all([
-    fetch('data/players.json').then(r => r.json()),
-    fetch('data/ocs.json').then(r => r.json()),
-    fetch('data/stories.json').then(r => r.json())
+    grab('data/players.json'),
+    grab('data/ocs.json'),
+    grab('data/stories.json')
   ]);
   PUBLISHED = { players, ocs, stories };
   PENDING = readPending();

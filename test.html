@@ -381,6 +381,15 @@ describe('The site loads and routes', () => {
       'index.html showed its data-loading error screen. It fetches data/players.json, data/ocs.json and data/stories.json relative to itself — those three files must sit in a data/ folder beside index.html.');
   }, 'move the JSON files into data/ next to index.html');
 
+  it('reads the data files fresh, not from the browser cache', async () => {
+    // GitHub Pages sends Cache-Control: max-age=600 on the data files. Without
+    // an explicit no-store the browser serves the pre-publish copy for ten
+    // minutes, so a successful publish looks like it did nothing.
+    const src = W.loadData.toString();
+    assert(/no-store|no-cache/.test(src),
+      'loadData fetches the data files with default caching, so a published change can take up to ten minutes to appear');
+  }, "fetch(path, { cache: 'no-store' })");
+
   it('the home page lists players, OCs and stories', async () => {
     await nav('#/');
     const text = appText();
