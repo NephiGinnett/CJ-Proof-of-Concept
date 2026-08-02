@@ -51,8 +51,10 @@
   .mono{font-family:'JetBrains Mono',monospace;}
 
   /* ---------- Shell ---------- */
+  /* header + preview bar stick as one unit; two separate sticky elements at
+     top:0 would stack on top of each other and hide the bar on scroll */
+  .topbar{position:sticky;top:0;z-index:10;}
   header.shell{
-    position:sticky;top:0;z-index:10;
     background:rgba(20,17,15,0.92);
     backdrop-filter:blur(6px);
     border-bottom:1px solid var(--panel-border);
@@ -327,7 +329,6 @@
   /* display:flex would otherwise beat the browser's [hidden]{display:none} */
   #preview-bar[hidden]{display:none;}
   #preview-bar{
-    position:sticky;top:0;z-index:9;
     background:var(--panel-raised);
     border-bottom:1px solid var(--gold);
     border-left:4px solid var(--gold);
@@ -389,11 +390,52 @@
     border-top:1px solid var(--panel-border);
   }
 
+  /* ---------- Phones and small tablets ----------
+     The header is sticky, so every row it takes is a row of the archive you
+     can't see. Collapse it to two: identity + search + icon buttons on one,
+     the section menu on its own beneath. */
+  @media (max-width:760px){
+    header.shell{padding:10px 14px;gap:10px;row-gap:9px;}
+    .brand{order:1;}
+    .brand h1{font-size:1rem;}
+    .brand .mark{font-size:1.05rem;}
+
+    .shell-actions{order:2;flex:1;justify-content:flex-end;gap:8px;min-width:0;}
+    .search-box{flex:1;min-width:0;padding:7px 10px;border-radius:6px;}
+    .search-box input{font-size:0.85rem;}
+    .btn-text{display:none;}          /* ↑ and + carry the meaning; aria-label carries it for screen readers */
+    .ghost-btn,.copy-btn{padding:9px 12px;font-size:0.85rem;}
+
+    nav.mainnav{
+      order:3;width:100%;
+      flex-wrap:nowrap;overflow-x:auto;
+      gap:2px;
+      scrollbar-width:none;-webkit-overflow-scrolling:touch;
+    }
+    nav.mainnav::-webkit-scrollbar{display:none;}
+    nav.mainnav a{font-size:0.66rem;padding:10px;letter-spacing:0.04em;}
+
+    /* narrow phones: shrink the labels rather than push Tags off the edge
+       (the strip still scrolls if even this doesn't fit) */
+    @media (max-width:420px){
+      nav.mainnav a{font-size:0.62rem;padding:10px 8px;}
+    }
+
+    /* the bar is sticky too, so keep it to two short rows: label, then buttons.
+       the file list is on the Review page anyway. */
+    #preview-bar{padding:9px 14px;gap:8px;row-gap:7px;}
+    #preview-bar .pv-spacer{display:none;}
+    #preview-bar .pv-detail{display:none;}
+    #preview-bar .pv-label{width:100%;}
+    #preview-bar button,#preview-bar .ghost-btn{padding:7px 11px;font-size:0.72rem;}
+  }
+
   @media (max-width:600px){
-    header.shell{padding:12px 16px;}
     main{padding:24px 16px 60px;}
     .detail-header{flex-direction:column;}
     .thread-row{gap:20px;}
+    .index-head h1{font-size:1.6rem;}
+    .entry-actions{flex-direction:column;align-items:flex-start;gap:8px;}
   }
 
   @media (prefers-reduced-motion: reduce){
@@ -403,6 +445,7 @@
 </head>
 <body>
 
+<div class="topbar">
 <header class="shell">
   <div class="brand" onclick="location.hash='#/'">
     <span class="mark">&#10038;</span>
@@ -422,12 +465,17 @@
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input id="global-search" type="text" placeholder="Search players, OCs, stories, tags&hellip;" />
     </div>
-    <a href="#/upload" class="ghost-btn" style="margin:0;white-space:nowrap;">&#8593; Upload</a>
-    <a href="#/add/player" class="copy-btn" style="margin:0;white-space:nowrap;">+ Add entry</a>
+    <a href="#/upload" class="ghost-btn" style="margin:0;white-space:nowrap;" aria-label="Upload data files">
+      <span aria-hidden="true">&#8593;</span><span class="btn-text">Upload</span>
+    </a>
+    <a href="#/add/player" class="copy-btn" style="margin:0;white-space:nowrap;" aria-label="Add a new entry">
+      <span aria-hidden="true">+</span><span class="btn-text">Add entry</span>
+    </a>
   </div>
 </header>
 
 <div id="preview-bar" hidden></div>
+</div>
 
 <main id="app"></main>
 

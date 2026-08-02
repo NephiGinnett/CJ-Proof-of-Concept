@@ -688,6 +688,21 @@ describe('Upload, preview, publish', () => {
     assert(bar().querySelector('#pv-discard'), 'no discard button in the preview bar');
   });
 
+  it('the preview bar stays visible when you scroll', async () => {
+    // regression: the bar and the header were both sticky at top:0, so scrolling
+    // slid the bar underneath the header and it vanished
+    await nav('#/');
+    W.scrollTo(0, 600);
+    await new Promise(r => setTimeout(r, 60));
+    const header = D.querySelector('header.shell').getBoundingClientRect();
+    const pv = bar().getBoundingClientRect();
+    assert(pv.height > 0, 'the preview bar collapsed while scrolled');
+    assert(pv.top >= header.bottom - 1,
+      `the header is covering the preview bar while scrolled (bar top ${Math.round(pv.top)}, header bottom ${Math.round(header.bottom)})`);
+    assert(pv.bottom > 0 && pv.top < W.innerHeight, 'the preview bar scrolled off screen instead of sticking');
+    W.scrollTo(0, 0);
+  });
+
   it('an uploaded file survives moving around the site', async () => {
     await nav('#/');
     await nav('#/upload');
