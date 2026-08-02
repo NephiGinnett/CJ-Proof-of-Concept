@@ -2,11 +2,49 @@
 
 A wiki for tracking players, their OCs, and the stories they've been in — all cross-linked automatically. No app to install, no database, no build step. Just three JSON files and one HTML file.
 
+## Uploading a file
+
+Click **↑ Upload** in the top nav, then **Choose files** (or drag them onto the page). Give it
+`players.json`, `ocs.json`, `stories.json`, or any combination — it works out which is which from
+what's inside them, so the filename doesn't have to be exact.
+
+Nothing is saved yet. The file loads straight into the site, a gold bar appears saying
+**Preview — not published**, and you can browse around exactly as if it were live: every page,
+every cross-link, every tag. It also checks the file over and tells you if anything points at
+something that doesn't exist — a `playerId` with a typo in it, a story id that doesn't match.
+
+When it looks right, press **Publish**. Then either:
+
+- **Publish to GitHub** — writes the file into the repo for you, the same as committing it by hand.
+  Needs a GitHub token the first time (see below); after that it's one press.
+- **Download the file instead** — hands you the finished file to drag onto GitHub yourself, no
+  token involved.
+
+If it doesn't look right, press **Discard** and the published data comes straight back. Nothing
+you preview ever touches the repo until you publish it.
+
+### The token, once
+
+Publishing straight to GitHub needs a fine-grained personal access token with **Contents:
+Read and write** on this repository, and nothing else. Settings → Developer settings → Personal
+access tokens → Fine-grained tokens. Paste it into the Upload page once and it's remembered in
+that browser.
+
+It's stored in your browser only — never in the repo, never sent anywhere except GitHub. But
+anyone using that browser profile can publish with it, and anyone you hand the token to can write
+to the repo, so don't paste it on a shared computer and don't give it to other players. There's a
+**Forget token** button. If you'd rather not use one at all, "Download the file instead" does the
+same job with a manual commit at the end.
+
 ## Adding a new entry (the easy way)
 
-Click **+ Add entry** in the top nav of the site itself. Pick Player / OC / Story, fill in the fields, and it builds properly-formatted JSON for you on the right as you type — including turning names you type into other fields (like an OC's story list) into the right lowercase-hyphenated ids automatically. Hit **Copy JSON**, then paste it into the matching file below as a new entry in the array (see "Adding a new entry (by hand)" for exactly where it goes), and commit.
+Click **+ Add entry** in the top nav. Pick Player / OC / Story, fill in the fields, and it builds
+properly-formatted JSON as you type — including turning names you type into other fields (like an
+OC's story list) into the right lowercase-hyphenated ids automatically.
 
-This builder doesn't save anything on its own — it's a static site with no backend, so there's no direct "upload." It just saves you from hand-writing JSON and getting a field wrong.
+**Add to preview** drops it into the site right then, and takes you to its new page so you can see
+it. From there it's the same as an upload: look around, then publish when it looks right. If you'd
+rather do it by hand, **Copy JSON** still gives you the entry to paste into the matching file.
 
 ## Adding a new entry (by hand)
 
@@ -81,8 +119,9 @@ It checks two different things:
   doesn't crash the site, it just makes an entry quietly disappear from a list, which is easy to
   miss by eye. This catches it.
 - **The site itself.** Every page type opens, the reverse lists derive themselves correctly, the
-  **+ Add entry** builder produces JSON the site can read back, and text with odd characters in it
-  (quotes, angle brackets) stays text instead of turning into markup.
+  **+ Add entry** builder produces JSON the site can read back, uploading a file previews it and
+  discarding it puts the published data back, and text with odd characters in it (quotes, angle
+  brackets) stays text instead of turning into markup.
 
 Green all the way down means it's safe to publish. A red row tells you which entry is wrong and
 what to fix. It's read-only — it never writes to your data files.

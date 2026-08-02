@@ -221,12 +221,12 @@
     text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:6px;
   }
   .field .hint{font-size:0.75rem;color:var(--muted);margin-top:4px;font-style:italic;}
-  .field input[type=text], .field textarea{
+  .field input[type=text], .field input[type=password], .field textarea{
     width:100%;background:var(--panel);border:1px solid var(--panel-border);
     color:var(--parchment);font-family:'Inter',sans-serif;font-size:0.9rem;
     padding:10px 12px;border-radius:2px;outline:none;
   }
-  .field input[type=text]:focus, .field textarea:focus{border-color:var(--ember);}
+  .field input[type=text]:focus, .field input[type=password]:focus, .field textarea:focus{border-color:var(--ember);}
   .field textarea{resize:vertical;min-height:70px;}
 
   .rel-row{display:flex;gap:8px;margin-bottom:8px;}
@@ -254,6 +254,73 @@
   }
   .copy-btn:hover{background:var(--ember-bright);}
   .copy-btn.copied{background:var(--gold);}
+  .copy-btn[disabled]{opacity:0.45;cursor:not-allowed;}
+  .ghost-btn{
+    display:inline-flex;align-items:center;gap:8px;
+    font-family:'JetBrains Mono',monospace;font-size:0.8rem;font-weight:600;
+    background:var(--panel);color:var(--parchment);
+    border:1px solid var(--panel-border);border-radius:2px;
+    padding:9px 15px;cursor:pointer;
+  }
+  .ghost-btn:hover{border-color:var(--gold);color:var(--gold);}
+  .ghost-btn.copied{background:var(--gold);border-color:var(--gold);color:var(--ink);}
+
+  /* ---------- Upload / preview / publish ---------- */
+  #preview-bar{
+    position:sticky;top:0;z-index:9;
+    background:var(--panel-raised);
+    border-bottom:1px solid var(--gold);
+    border-left:4px solid var(--gold);
+    padding:12px 24px;
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    font-family:'JetBrains Mono',monospace;font-size:0.8rem;
+  }
+  #preview-bar .pv-label{color:var(--gold);font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.7rem;}
+  #preview-bar .pv-detail{color:var(--muted);}
+  #preview-bar .pv-warn{color:var(--ember-bright);}
+  #preview-bar .pv-spacer{flex:1;}
+  #preview-bar button{font-size:0.78rem;padding:8px 14px;}
+
+  .dropzone{
+    border:2px dashed var(--panel-border);border-radius:4px;
+    background:var(--panel);padding:34px 24px;text-align:center;
+    transition:border-color 0.15s ease, background 0.15s ease;
+  }
+  .dropzone.over{border-color:var(--gold);background:var(--panel-raised);}
+  .dropzone .dz-hint{color:var(--muted);font-size:0.85rem;margin:10px 0 0;}
+  .dropzone input[type=file]{display:none;}
+
+  .report{margin:20px 0;}
+  .report .line{
+    display:flex;gap:10px;align-items:flex-start;
+    border:1px solid var(--panel-border);border-top:none;
+    background:var(--panel);padding:9px 14px;font-size:0.86rem;
+  }
+  .report .line:first-child{border-top:1px solid var(--panel-border);}
+  .report .flag{
+    font-family:'JetBrains Mono',monospace;font-size:0.62rem;font-weight:600;letter-spacing:0.1em;
+    padding:3px 7px;border-radius:2px;flex-shrink:0;color:var(--ink);
+  }
+  .flag.ok{background:#6f9a52;}
+  .flag.warn{background:var(--gold);}
+  .flag.err{background:#c9483f;color:#fff;}
+
+  .panel{
+    background:var(--panel);border:1px solid var(--panel-border);
+    border-left:3px solid var(--panel-border);padding:18px 20px;margin:20px 0;
+  }
+  .panel.gold{border-left-color:var(--gold);}
+  .panel h3{margin:0 0 10px;font-size:1rem;}
+  .panel .note{color:var(--muted);font-size:0.82rem;max-width:65ch;}
+  .field-row{display:flex;gap:12px;flex-wrap:wrap;}
+  .field-row .field{flex:1;min-width:150px;}
+  details.help{margin-top:12px;}
+  details.help summary{cursor:pointer;color:var(--gold);font-size:0.82rem;font-family:'JetBrains Mono',monospace;}
+  details.help .note{margin-top:10px;}
+  details.help ol{color:var(--muted);font-size:0.82rem;max-width:65ch;padding-left:20px;}
+  .status-line{margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:0.8rem;}
+  .status-line.good{color:#8fbf6c;}
+  .status-line.bad{color:#e79b94;}
   .builder-note{color:var(--muted);font-size:0.82rem;max-width:60ch;margin:4px 0 0;}
 
   footer{
@@ -286,14 +353,17 @@
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input id="global-search" type="text" placeholder="Search players, OCs, stories, tags&hellip;" />
     </div>
+    <a href="#/upload" class="ghost-btn" style="margin:0;white-space:nowrap;">&#8593; Upload</a>
     <a href="#/add/player" class="copy-btn" style="margin:0;white-space:nowrap;">+ Add entry</a>
   </div>
 </header>
 
+<div id="preview-bar" hidden></div>
+
 <main id="app"></main>
 
 <footer>
-  the archive &mdash; data lives in <span class="mono">/data/*.json</span>, edit and push to update
+  the archive &mdash; data lives in <span class="mono">/data/*.json</span>. Upload a file to preview it, publish when it looks right.
 </footer>
 
 <script>
@@ -302,13 +372,57 @@
    ============================================================ */
 let DB = { players: [], ocs: [], stories: [] };
 
+/* PUBLISHED is what's actually committed in data/*.json.
+   PENDING holds uploaded-but-not-yet-published collections, if any.
+   DB is what the site renders: PUBLISHED with PENDING laid over the top. */
+let PUBLISHED = { players: [], ocs: [], stories: [] };
+let PENDING = null;
+
+const COLLECTIONS = ['players', 'ocs', 'stories'];
+const COLLECTION_FOR_TYPE = { player: 'players', oc: 'ocs', story: 'stories' };
+const PENDING_KEY = 'archive:pending';
+const CONFIG_KEY  = 'archive:publish-config';
+const TOKEN_KEY   = 'archive:github-token';
+
 async function loadData(){
   const [players, ocs, stories] = await Promise.all([
     fetch('data/players.json').then(r => r.json()),
     fetch('data/ocs.json').then(r => r.json()),
     fetch('data/stories.json').then(r => r.json())
   ]);
-  DB = { players, ocs, stories };
+  PUBLISHED = { players, ocs, stories };
+  PENDING = readPending();
+  applyDB();
+}
+
+function applyDB(){
+  // slice: DB gets its own arrays, so mutating DB can never edit the published
+  // baseline we fall back to when an upload is discarded
+  DB = {};
+  COLLECTIONS.forEach(k => {
+    const src = (PENDING && PENDING[k]) || PUBLISHED[k] || [];
+    DB[k] = src.slice();
+  });
+}
+
+function readPending(){
+  try{
+    const raw = sessionStorage.getItem(PENDING_KEY);
+    if(!raw) return null;
+    const obj = JSON.parse(raw);
+    const kept = {};
+    COLLECTIONS.forEach(k => { if(Array.isArray(obj[k])) kept[k] = obj[k]; });
+    return Object.keys(kept).length ? kept : null;
+  }catch(e){ return null; }
+}
+
+function setPending(next){
+  PENDING = next && Object.keys(next).length ? next : null;
+  try{
+    if(PENDING) sessionStorage.setItem(PENDING_KEY, JSON.stringify(PENDING));
+    else sessionStorage.removeItem(PENDING_KEY);
+  }catch(e){ /* private browsing — preview still works for this page view */ }
+  applyDB();
 }
 
 const byId = (arr, id) => arr.find(x => x.id === id);
@@ -545,14 +659,18 @@ function viewAdd(type){
   return `
     <div class="eyebrow">add entry</div>
     <h1 style="font-size:1.8rem;margin:6px 0 4px;">Build a new ${type === 'oc' ? 'OC' : type}</h1>
-    <p style="color:var(--muted);max-width:60ch;">Fill this in, then copy the JSON on the right into <span class="mono">data/${type==='oc'?'ocs':type+'s'}.json</span> as a new entry in the array (don't forget a comma between entries), then commit and push.</p>
+    <p style="color:var(--muted);max-width:60ch;">Fill this in, then <strong>Add to preview</strong> to see it on the site straight away. Nothing is saved until you publish. (Or copy the JSON and paste it into <span class="mono">data/${COLLECTION_FOR_TYPE[type]}.json</span> by hand, if you'd rather.)</p>
     <div class="type-tabs">${tabs}</div>
     <div class="builder-grid">
       <div>${fieldsHTML}</div>
       <div>
         <div class="eyebrow" style="margin-bottom:8px;">live preview</div>
         <div class="json-preview" id="json-out">{}</div>
-        <button class="copy-btn" id="copy-json-btn">Copy JSON</button>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <button class="copy-btn" id="add-preview-btn">Add to preview</button>
+          <button class="ghost-btn" id="copy-json-btn" style="margin-top:12px;">Copy JSON</button>
+        </div>
+        <div class="status-line" id="add-status"></div>
       </div>
     </div>
   `;
@@ -561,6 +679,7 @@ function viewAdd(type){
 function bindAddForm(type){
   const out = document.getElementById('json-out');
   const relRows = document.getElementById('rel-rows');
+  let built = null;   // the entry as currently described by the form
 
   function addRelRow(ocId='', label=''){
     const row = document.createElement('div');
@@ -598,11 +717,26 @@ function bindAddForm(type){
         summary: val('f-bio'), date: val('f-date'), image: val('f-image'),
         ocIds: listFromCSV(val('f-ocids')).map(slugify), tags: listFromCSV(val('f-tags')) };
     }
+    built = obj;
     out.textContent = JSON.stringify(obj, null, 2) + ',';
   }
 
   document.querySelectorAll('#app input, #app textarea').forEach(el => el.addEventListener('input', update));
   update();
+
+  document.getElementById('add-preview-btn').addEventListener('click', () => {
+    const status = document.getElementById('add-status');
+    const key = COLLECTION_FOR_TYPE[type];
+    const nameField = type === 'story' ? 'title' : 'name';
+
+    if(!built || !built[nameField] || /^(Display Name|Story Title)$/.test(built[nameField]))
+      return setStatus(status, 'bad', `Give it a ${nameField} first.`);
+    if(byId(DB[key], built.id))
+      return setStatus(status, 'bad', `There's already a ${KIND_LABEL[key]} with the id "${built.id}". Pick a different name, or edit the existing one.`);
+
+    setPending({ ...(PENDING || {}), [key]: [...DB[key], built] });
+    location.hash = `#/${type}/${built.id}`;
+  });
 
   document.getElementById('copy-json-btn').addEventListener('click', async () => {
     const btn = document.getElementById('copy-json-btn');
@@ -623,6 +757,392 @@ function notFound(kind, id){
     <h1>No ${esc(kind)} called &ldquo;${esc(id)}&rdquo;</h1>
     <p style="color:var(--muted);">Check the id in the JSON file, or <a href="#/" style="color:var(--ember-bright);">go home</a>.</p>
   `;
+}
+
+/* ============================================================
+   UPLOAD → PREVIEW → PUBLISH
+   ============================================================ */
+const FILE_LABEL = { players: 'players.json', ocs: 'ocs.json', stories: 'stories.json' };
+const KIND_LABEL = { players: 'player', ocs: 'OC', stories: 'story' };
+const KIND_PLURAL = { players: 'players', ocs: 'OCs', stories: 'stories' };
+
+/* Which collection is this file? Shape is more reliable than the filename,
+   so sniff the first entry and only fall back to the name. */
+function classify(filename, data){
+  const first = (Array.isArray(data) && data[0]) || null;
+  if(first && typeof first === 'object'){
+    if('title' in first) return 'stories';
+    if('playerId' in first || 'relationships' in first) return 'ocs';
+    if('ocIds' in first) return 'players';
+  }
+  const n = (filename || '').toLowerCase();
+  if(n.includes('player')) return 'players';
+  if(n.includes('stor')) return 'stories';
+  if(n.includes('oc')) return 'ocs';
+  return null;
+}
+
+/* Check a candidate database the way a careful reader would.
+   Errors block publishing; warnings are worth seeing but won't stop you. */
+function validate(db){
+  const errors = [], warnings = [], notes = [];
+  const ids = { players: [], ocs: [], stories: [] };
+
+  COLLECTIONS.forEach(key => {
+    const list = db[key];
+    if(!Array.isArray(list)){ errors.push(`${FILE_LABEL[key]} is not a list of entries.`); return; }
+    const seen = new Set();
+    list.forEach((item, i) => {
+      const where = `${FILE_LABEL[key]} entry ${i + 1}`;
+      if(!item || typeof item !== 'object'){ errors.push(`${where} is not an object.`); return; }
+      if(!item.id){ errors.push(`${where} has no "id".`); return; }
+      const nameField = key === 'stories' ? 'title' : 'name';
+      if(!item[nameField]) errors.push(`${where} ("${item.id}") has no "${nameField}".`);
+      if(seen.has(item.id)) errors.push(`${FILE_LABEL[key]} uses the id "${item.id}" more than once — only the first would be reachable.`);
+      seen.add(item.id);
+      ids[key].push(item.id);
+      if(!/^[a-z0-9-]+$/.test(item.id)) warnings.push(`"${item.id}" in ${FILE_LABEL[key]} has capitals, spaces or symbols in its id — it works, but makes an ugly link.`);
+    });
+  });
+  if(errors.length) return { errors, warnings, notes };
+
+  (db.ocs || []).forEach(o => {
+    if(o.playerId && !ids.players.includes(o.playerId))
+      warnings.push(`OC "${o.id}" is played by "${o.playerId}", who isn't in players.json — their page will say "no player linked".`);
+    (o.storyIds || []).forEach(sid => {
+      if(!ids.stories.includes(sid)) warnings.push(`OC "${o.id}" lists story "${sid}", which doesn't exist — it just won't show up.`);
+    });
+    (o.relationships || []).forEach(r => {
+      if(!r || !r.ocId) return warnings.push(`OC "${o.id}" has a relationship with no "ocId".`);
+      if(!ids.ocs.includes(r.ocId)) warnings.push(`OC "${o.id}" has a relationship with "${r.ocId}", who doesn't exist — it won't be drawn.`);
+    });
+  });
+  (db.stories || []).forEach(s => (s.ocIds || []).forEach(oid => {
+    if(!ids.ocs.includes(oid)) warnings.push(`Story "${s.id}" casts "${oid}", who doesn't exist — they won't appear in the cast.`);
+  }));
+
+  notes.push(`${ids.players.length} player${ids.players.length === 1 ? '' : 's'}, ${ids.ocs.length} OC${ids.ocs.length === 1 ? '' : 's'}, ${ids.stories.length} stor${ids.stories.length === 1 ? 'y' : 'ies'}.`);
+  return { errors, warnings, notes };
+}
+
+/* ---------- the sticky "you're previewing" bar ---------- */
+function renderPreviewBar(){
+  const bar = document.getElementById('preview-bar');
+  if(!PENDING){ bar.hidden = true; bar.innerHTML = ''; return; }
+
+  const changed = Object.keys(PENDING).map(k => FILE_LABEL[k]).join(', ');
+  const { errors, warnings } = validate(DB);
+  const trouble = errors.length
+    ? `<span class="pv-warn">${errors.length} problem${errors.length === 1 ? '' : 's'} &mdash; can't publish yet</span>`
+    : warnings.length
+      ? `<span class="pv-warn">${warnings.length} thing${warnings.length === 1 ? '' : 's'} to check</span>`
+      : '';
+
+  bar.hidden = false;
+  bar.innerHTML = `
+    <span class="pv-label">Preview &mdash; not published</span>
+    <span class="pv-detail">${esc(changed)}</span>
+    ${trouble}
+    <span class="pv-spacer"></span>
+    <a class="ghost-btn" href="#/upload">Review</a>
+    <button class="copy-btn" id="pv-publish" ${errors.length ? 'disabled' : ''}>Publish</button>
+    <button class="ghost-btn" id="pv-discard">Discard</button>`;
+
+  const pub = document.getElementById('pv-publish');
+  if(pub) pub.addEventListener('click', () => { location.hash = '#/upload'; setTimeout(startPublish, 60); });
+  document.getElementById('pv-discard').addEventListener('click', discardPending);
+}
+
+function discardPending(){
+  setPending(null);
+  render();
+}
+
+/* ---------- publish target ---------- */
+function detectRepo(){
+  const m = location.hostname.match(/^([^.]+)\.github\.io$/i);
+  if(m){
+    const seg = location.pathname.split('/').filter(Boolean)[0];
+    return { owner: m[1], repo: seg || `${m[1]}.github.io`, branch: 'main' };
+  }
+  return { owner: '', repo: '', branch: 'main' };
+}
+function getConfig(){
+  let saved = {};
+  try{ saved = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}'); }catch(e){}
+  const auto = detectRepo();
+  return { owner: saved.owner || auto.owner, repo: saved.repo || auto.repo, branch: saved.branch || auto.branch };
+}
+function saveConfig(cfg){ try{ localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg)); }catch(e){} }
+function getToken(){ try{ return localStorage.getItem(TOKEN_KEY) || ''; }catch(e){ return ''; } }
+function saveToken(t){ try{ t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); }catch(e){} }
+
+const b64 = str => {
+  const bytes = new TextEncoder().encode(str);
+  let bin = '';
+  bytes.forEach(b => { bin += String.fromCharCode(b); });
+  return btoa(bin);
+};
+
+async function gh(path, token, options = {}){
+  const res = await fetch(`https://api.github.com${path}`, {
+    ...options,
+    headers: {
+      'Accept': 'application/vnd.github+json',
+      'Authorization': `Bearer ${token}`,
+      'X-GitHub-Api-Version': '2022-11-28',
+      ...(options.body ? { 'Content-Type': 'application/json' } : {})
+    }
+  });
+  return res;
+}
+
+function friendlyError(res, body, cfg, path){
+  if(res.status === 401) return 'GitHub rejected the token. It may be expired, or pasted with a character missing.';
+  if(res.status === 403) return 'GitHub refused the write. The token is probably missing "Contents: Read and write" for this repository.';
+  if(res.status === 404) return `GitHub can't see ${cfg.owner}/${cfg.repo} at ${path} on branch "${cfg.branch}". Check the owner, repo and branch above — and that the token has access to this repository.`;
+  if(res.status === 409 || res.status === 422) return 'That file changed on GitHub while you were editing. Reload the page and upload again so you start from the current version.';
+  return `GitHub said ${res.status}: ${(body && body.message) || 'unknown error'}`;
+}
+
+let PUBLISH_RESULT = null;   // set once a publish lands, so the upload page can report it
+
+async function startPublish(){
+  const status = document.getElementById('publish-status');
+  PUBLISH_RESULT = null;
+  const btn = document.getElementById('publish-btn');
+  if(!status || !btn) return;
+
+  if(!PENDING) return setStatus(status, 'bad', 'Nothing to publish — upload a file first.');
+  const { errors } = validate(DB);
+  if(errors.length) return setStatus(status, 'bad', "There are problems to fix before this can be published.");
+
+  const cfg = {
+    owner: (document.getElementById('cfg-owner').value || '').trim(),
+    repo: (document.getElementById('cfg-repo').value || '').trim(),
+    branch: (document.getElementById('cfg-branch').value || '').trim() || 'main'
+  };
+  const token = (document.getElementById('cfg-token').value || '').trim();
+  if(!cfg.owner || !cfg.repo) return setStatus(status, 'bad', 'Fill in the repository owner and name first.');
+  if(!token) return setStatus(status, 'bad', 'Paste a GitHub token first — see "How do I get a token?" below.');
+  saveConfig(cfg);
+  saveToken(token);
+
+  btn.disabled = true;
+  const done = [];
+  try{
+    for(const key of Object.keys(PENDING)){
+      const path = `data/${FILE_LABEL[key]}`;
+      const content = JSON.stringify(PENDING[key], null, 2) + '\n';
+      setStatus(status, '', `Publishing ${path}…`);
+
+      const getRes = await gh(`/repos/${cfg.owner}/${cfg.repo}/contents/${path}?ref=${encodeURIComponent(cfg.branch)}`, token);
+      let sha;
+      if(getRes.ok){
+        const cur = await getRes.json();
+        sha = cur.sha;
+      }else if(getRes.status !== 404){
+        const body = await getRes.json().catch(() => ({}));
+        throw new Error(friendlyError(getRes, body, cfg, path));
+      }
+
+      const putRes = await gh(`/repos/${cfg.owner}/${cfg.repo}/contents/${path}`, token, {
+        method: 'PUT',
+        body: JSON.stringify({
+          message: `Update ${path} from the archive`,
+          content: b64(content),
+          branch: cfg.branch,
+          ...(sha ? { sha } : {})
+        })
+      });
+      if(!putRes.ok){
+        const body = await putRes.json().catch(() => ({}));
+        throw new Error(friendlyError(putRes, body, cfg, path));
+      }
+      const result = await putRes.json();
+      done.push({ path, url: result.commit && result.commit.html_url });
+      PUBLISHED[key] = PENDING[key];
+    }
+
+    // the publish panel disappears with PENDING, so the result is rendered by viewUpload instead
+    PUBLISH_RESULT = done;
+    setPending(null);
+    render();
+  }catch(err){
+    setStatus(document.getElementById('publish-status'), 'bad', err.message);
+    const b = document.getElementById('publish-btn');
+    if(b) b.disabled = false;
+  }
+}
+
+function setStatus(el, kind, msg){
+  if(!el) return;
+  el.className = 'status-line' + (kind ? ' ' + kind : '');
+  el.textContent = msg;
+}
+
+function downloadPending(){
+  if(!PENDING) return;
+  Object.keys(PENDING).forEach(key => {
+    const blob = new Blob([JSON.stringify(PENDING[key], null, 2) + '\n'], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = FILE_LABEL[key];
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  });
+}
+
+/* ---------- the upload page ---------- */
+function viewUpload(){
+  const cfg = getConfig();
+  const { errors, warnings, notes } = PENDING ? validate(DB) : { errors: [], warnings: [], notes: [] };
+
+  const reportHTML = !PENDING ? '' : `
+    <div class="report">
+      ${notes.map(n => `<div class="line"><span class="flag ok">LOADED</span><span>${esc(n)}</span></div>`).join('')}
+      ${errors.map(e => `<div class="line"><span class="flag err">FIX</span><span>${esc(e)}</span></div>`).join('')}
+      ${warnings.map(w => `<div class="line"><span class="flag warn">CHECK</span><span>${esc(w)}</span></div>`).join('')}
+      ${!errors.length && !warnings.length ? `<div class="line"><span class="flag ok">OK</span><span>Every cross-link points at something that exists.</span></div>` : ''}
+    </div>`;
+
+  const loaded = PENDING ? Object.keys(PENDING).map(k => `${FILE_LABEL[k]} (${PENDING[k].length} ${PENDING[k].length === 1 ? KIND_LABEL[k] : KIND_PLURAL[k]})`).join(' &middot; ') : '';
+
+  const publishedHTML = (!PENDING && PUBLISH_RESULT && PUBLISH_RESULT.length) ? `
+    <div class="panel gold">
+      <h3>Published</h3>
+      <p class="note">
+        ${PUBLISH_RESULT.map(d => d.url
+          ? `<a href="${esc(d.url)}" target="_blank" rel="noopener" style="color:var(--ember-bright);">${esc(d.path)}</a>`
+          : esc(d.path)).join(', ')}
+        &mdash; committed to the repository. GitHub Pages usually catches up within a minute, and the
+        site is already showing the new data.
+      </p>
+    </div>` : '';
+
+  return `
+    <div class="eyebrow">upload</div>
+    <h1 style="font-size:1.8rem;margin:6px 0 4px;">Upload a data file</h1>
+    <p style="color:var(--muted);max-width:60ch;">
+      Drop in <span class="mono">players.json</span>, <span class="mono">ocs.json</span> or
+      <span class="mono">stories.json</span> &mdash; any or all three. Nothing is saved yet: you get to
+      look around the site with your file loaded, and publish it only if it looks right.
+    </p>
+
+    <div class="dropzone" id="dropzone">
+      <button type="button" class="copy-btn" id="pick-btn" style="margin:0;">Choose files</button>
+      <p class="dz-hint">or drag them here</p>
+      <input type="file" id="file-input" accept=".json,application/json" multiple>
+    </div>
+    <div class="status-line" id="upload-status"></div>
+    ${publishedHTML}
+
+    ${!PENDING ? '' : `
+      <div class="panel gold">
+        <h3>Loaded and ready to look at</h3>
+        <p class="note">${loaded}</p>
+        ${reportHTML}
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;">
+          <a class="copy-btn" href="#/" style="margin:0;">Look around the site</a>
+          <button type="button" class="ghost-btn" id="discard-btn">Discard</button>
+        </div>
+      </div>
+
+      <div class="panel ${errors.length ? '' : 'gold'}">
+        <h3>Publish to GitHub</h3>
+        <p class="note">
+          This writes the file straight into your repository, the same as committing it by hand.
+          GitHub Pages picks it up within a minute or so.
+        </p>
+        <div class="field-row" style="margin-top:14px;">
+          <div class="field"><label>Owner</label><input type="text" id="cfg-owner" value="${esc(cfg.owner)}" placeholder="your-github-username"></div>
+          <div class="field"><label>Repository</label><input type="text" id="cfg-repo" value="${esc(cfg.repo)}" placeholder="repo-name"></div>
+          <div class="field"><label>Branch</label><input type="text" id="cfg-branch" value="${esc(cfg.branch)}" placeholder="main"></div>
+        </div>
+        <div class="field">
+          <label>GitHub token</label>
+          <input type="password" id="cfg-token" value="${esc(getToken())}" placeholder="github_pat_&hellip;" autocomplete="off">
+          <p class="hint">Kept in this browser only &mdash; never in the repo, never sent anywhere but GitHub.</p>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <button type="button" class="copy-btn" id="publish-btn" style="margin:0;" ${errors.length ? 'disabled' : ''}>Publish</button>
+          <button type="button" class="ghost-btn" id="download-btn">Download the file instead</button>
+          <button type="button" class="ghost-btn" id="forget-token-btn">Forget token</button>
+        </div>
+        <div class="status-line" id="publish-status">${errors.length ? 'Fix the problems above first.' : ''}</div>
+
+        <details class="help">
+          <summary>How do I get a token?</summary>
+          <ol>
+            <li>On GitHub, go to Settings &rarr; Developer settings &rarr; Personal access tokens &rarr; Fine-grained tokens.</li>
+            <li>Generate a new token, and under "Repository access" pick only this repository.</li>
+            <li>Under "Permissions &rarr; Repository permissions", set <strong>Contents</strong> to <strong>Read and write</strong>. Nothing else is needed.</li>
+            <li>Copy it and paste it above. It's stored in this browser and nowhere else.</li>
+          </ol>
+          <p class="note">
+            Anyone using this browser profile can publish with it, and anyone you give the token to can
+            write to the repo &mdash; so don't paste it on a shared computer, and don't hand it to other
+            players. If you'd rather not use one at all, "Download the file instead" gives you the finished
+            file to drag onto GitHub yourself.
+          </p>
+        </details>
+      </div>`}
+  `;
+}
+
+function bindUpload(){
+  const input = document.getElementById('file-input');
+  const zone = document.getElementById('dropzone');
+  const status = document.getElementById('upload-status');
+
+  document.getElementById('pick-btn').addEventListener('click', () => input.click());
+  input.addEventListener('change', () => handleFiles([...input.files]));
+
+  ['dragenter','dragover'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.add('over'); }));
+  ['dragleave','drop'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.remove('over'); }));
+  zone.addEventListener('drop', e => handleFiles([...(e.dataTransfer ? e.dataTransfer.files : [])]));
+
+  async function handleFiles(files){
+    if(!files.length) return;
+    const next = { ...(PENDING || {}) };
+    const problems = [];
+
+    for(const file of files){
+      let text;
+      try{ text = await file.text(); }
+      catch(e){ problems.push(`Couldn't read ${file.name}.`); continue; }
+
+      let data;
+      try{ data = JSON.parse(text); }
+      catch(e){ problems.push(`${file.name} isn't valid JSON — ${e.message}`); continue; }
+
+      if(!Array.isArray(data)){ problems.push(`${file.name} should be a list of entries, starting with [ and ending with ].`); continue; }
+
+      const key = classify(file.name, data);
+      if(!key){ problems.push(`Couldn't tell what ${file.name} is. Name it players.json, ocs.json or stories.json.`); continue; }
+      next[key] = data;
+    }
+
+    if(Object.keys(next).length) setPending(next);
+    render();
+
+    const s = document.getElementById('upload-status');
+    if(problems.length) setStatus(s, 'bad', problems.join(' '));
+    else if(s) setStatus(s, 'good', 'Loaded. Have a look around, then publish if it looks right.');
+  }
+
+  if(PENDING){
+    document.getElementById('discard-btn').addEventListener('click', discardPending);
+    document.getElementById('publish-btn').addEventListener('click', startPublish);
+    document.getElementById('download-btn').addEventListener('click', downloadPending);
+    document.getElementById('forget-token-btn').addEventListener('click', () => {
+      saveToken('');
+      document.getElementById('cfg-token').value = '';
+      setStatus(document.getElementById('publish-status'), '', 'Token forgotten on this device.');
+    });
+  }
 }
 
 /* ============================================================
@@ -649,9 +1169,13 @@ function render(){
     const type = parts[1] || 'player';
     app.innerHTML = viewAdd(type);
     bindAddForm(type);
+  } else if(parts[0] === 'upload'){
+    app.innerHTML = viewUpload();
+    bindUpload();
   } else {
     app.innerHTML = notFound('page', parts.join('/'));
   }
+  renderPreviewBar();
   window.scrollTo(0,0);
 }
 

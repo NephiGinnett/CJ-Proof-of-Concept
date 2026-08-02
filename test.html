@@ -626,7 +626,185 @@ describe('The + Add entry builder', () => {
 });
 
 /* ============================================================
-   6. HOSTILE INPUT
+   6. UPLOAD → PREVIEW → PUBLISH
+   ============================================================ */
+
+/* Hand the page a file exactly as a file picker would. */
+function dropFile(name, data){
+  const input = D.getElementById('file-input');
+  assert(input, 'the upload page has no file input');
+  const dt = new W.DataTransfer();
+  dt.items.add(new W.File([JSON.stringify(data, null, 2)], name, { type: 'application/json' }));
+  input.files = dt.files;
+  input.dispatchEvent(new W.Event('change', { bubbles: true }));
+  return new Promise(r => setTimeout(r, 80));
+}
+
+function clearPreview(){
+  W.sessionStorage.removeItem('archive:pending');
+  W.eval('PENDING = null; applyDB();');
+}
+
+const bar = () => D.getElementById('preview-bar');
+
+describe('Upload, preview, publish', () => {
+  it('the header offers an upload button', async () => {
+    await nav('#/');
+    const btn = D.querySelector('header.shell a[href="#/upload"]');
+    assert(btn, 'no upload link in the header');
+    assert(/upload/i.test(btn.textContent), 'the upload link doesn\'t say "upload"');
+  });
+
+  it('nothing is in preview to begin with', async () => {
+    clearPreview();
+    await nav('#/upload');
+    eq(bar().hidden, true, 'the preview bar should be hidden when nothing is uploaded');
+  });
+
+  it('an uploaded file shows up on the site immediately', async () => {
+    clearPreview();
+    await nav('#/upload');
+    await dropFile('ocs.json', [{
+      id: 'uploaded-oc', name: 'Uploaded OC', playerId: RAW.players[0].id,
+      bio: 'Came in through the file picker.', image: '',
+      tags: ['uploaded'], storyIds: [], relationships: []
+    }]);
+    await nav('#/');
+    assert(cardFor('#/oc/uploaded-oc'), 'the uploaded OC is not on the home page');
+    eq(cardLinks('oc').length, 1, 'the uploaded file should replace ocs.json, not add to it');
+    await nav('#/oc/uploaded-oc');
+    eq(q('h1').textContent, 'Uploaded OC', 'the uploaded OC has no page');
+  });
+
+  it('the preview bar says it is not published yet', async () => {
+    eq(bar().hidden, false, 'the preview bar should be visible while a file is loaded');
+    const text = bar().textContent.toLowerCase();
+    assert(text.includes('not published'), 'the bar should make clear nothing is saved yet');
+    assert(bar().querySelector('#pv-publish'), 'no publish button in the preview bar');
+    assert(bar().querySelector('#pv-discard'), 'no discard button in the preview bar');
+  });
+
+  it('an uploaded file survives moving around the site', async () => {
+    await nav('#/');
+    await nav('#/upload');
+    await nav('#/');
+    assert(cardFor('#/oc/uploaded-oc'), 'the upload was lost while navigating');
+  });
+
+  it('discarding puts the published data back', async () => {
+    await nav('#/');
+    bar().querySelector('#pv-discard').click();
+    await new Promise(r => setTimeout(r, 60));
+    eq(bar().hidden, true, 'the preview bar should go away when the upload is discarded');
+    eq(cardLinks('oc').length, RAW.ocs.length, 'the published OCs should be back');
+    assert(!cardFor('#/oc/uploaded-oc'), 'the discarded OC is still showing');
+  });
+
+  it('a file is recognised by its shape, not just its name', async () => {
+    clearPreview();
+    await nav('#/upload');
+    await dropFile('my-backup-2026.json', [{
+      id: 'shape-story', title: 'Recognised By Shape', summary: '', date: '', image: '', ocIds: [], tags: []
+    }]);
+    await nav('#/story/shape-story');
+    eq(q('h1').textContent, 'Recognised By Shape', 'a story file with an odd name was not recognised');
+    clearPreview();
+  });
+
+  it('a broken cross-link is reported but still previews', async () => {
+    clearPreview();
+    await nav('#/upload');
+    await dropFile('ocs.json', [{
+      id: 'orphan-oc', name: 'Orphan OC', playerId: 'nobody-by-that-name',
+      bio: '', image: '', tags: [], storyIds: ['no-such-story'], relationships: []
+    }]);
+    const report = q('.report');
+    assert(report, 'no report shown after uploading');
+    const checks = [...report.querySelectorAll('.flag.warn')];
+    assert(checks.length >= 2, `expected the missing player and missing story to be flagged, got ${checks.length} flags`);
+    assert(report.textContent.includes('nobody-by-that-name'), 'the missing player was not named in the report');
+    assert(!bar().querySelector('#pv-publish').disabled, 'a broken link should be a warning, not a block on publishing');
+  });
+
+  it('a file that cannot be published is blocked, with a reason', async () => {
+    clearPreview();
+    await nav('#/upload');
+    await dropFile('ocs.json', [
+      { id: 'twin', name: 'First' },
+      { id: 'twin', name: 'Second' }
+    ]);
+    const report = q('.report');
+    assert(report.querySelector('.flag.err'), 'a duplicate id should be reported as something to fix');
+    assert(report.textContent.includes('more than once'), 'the report should explain the duplicate id');
+    eq(bar().querySelector('#pv-publish').disabled, true, 'publishing should be blocked while there are errors');
+    eq(D.getElementById('publish-btn').disabled, true, 'the publish button should be disabled while there are errors');
+  });
+
+  it('a file that is not JSON is refused with a readable message', async () => {
+    clearPreview();
+    await nav('#/upload');
+    const input = D.getElementById('file-input');
+    const dt = new W.DataTransfer();
+    dt.items.add(new W.File(['this is not json at all'], 'ocs.json', { type: 'application/json' }));
+    input.files = dt.files;
+    input.dispatchEvent(new W.Event('change', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 80));
+    const status = D.getElementById('upload-status');
+    assert(/isn't valid JSON|not valid JSON/i.test(status.textContent), `expected a JSON error, got "${status.textContent}"`);
+    eq(bar().hidden, true, 'a file that failed to parse should not enter preview');
+  });
+
+  it('publishing asks for a token instead of failing silently', async () => {
+    clearPreview();
+    await nav('#/upload');
+    await dropFile('ocs.json', [{ id: 'publish-me', name: 'Publish Me', playerId: '', bio: '', image: '', tags: [], storyIds: [], relationships: [] }]);
+    D.getElementById('cfg-owner').value = 'someone';
+    D.getElementById('cfg-repo').value = 'some-repo';
+    D.getElementById('cfg-token').value = '';
+    D.getElementById('publish-btn').click();
+    await new Promise(r => setTimeout(r, 60));
+    assert(/token/i.test(D.getElementById('publish-status').textContent),
+      'pressing publish with no token should say so');
+    clearPreview();
+  });
+
+  it('the add-entry form can push straight into the preview', async () => {
+    clearPreview();
+    await nav('#/add/story');
+    type('f-name', 'Built Not Uploaded');
+    type('f-bio', 'Made in the form, straight into preview.');
+    D.getElementById('add-preview-btn').click();
+    await new Promise(r => setTimeout(r, 80));
+    eq(W.location.hash, '#/story/built-not-uploaded', 'adding to preview should open the new entry');
+    eq(q('h1').textContent, 'Built Not Uploaded', 'the built entry has no page');
+    eq(bar().hidden, false, 'the built entry should show as unpublished');
+    await nav('#/');
+    eq(cardLinks('story').length, RAW.stories.length + 1, 'the built story should sit alongside the published ones');
+  });
+
+  it('the add-entry form refuses to reuse an existing id', async () => {
+    clearPreview();
+    await nav('#/add/oc');
+    type('f-name', RAW.ocs[0].name);
+    D.getElementById('add-preview-btn').click();
+    await new Promise(r => setTimeout(r, 60));
+    assert(/already/i.test(D.getElementById('add-status').textContent),
+      'adding a duplicate id should be refused with an explanation');
+    eq(bar().hidden, true, 'the duplicate should not have entered preview');
+  });
+
+  it('leaves no trace once the preview is cleared', async () => {
+    clearPreview();
+    await nav('#/');
+    eq(cardLinks('oc').length, RAW.ocs.length, 'OCs');
+    eq(cardLinks('story').length, RAW.stories.length, 'stories');
+    eq(cardLinks('player').length, RAW.players.length, 'players');
+    eq(bar().hidden, true, 'the preview bar is still showing');
+  });
+});
+
+/* ============================================================
+   7. HOSTILE INPUT
    ============================================================ */
 describe('Odd characters stay text, not markup', () => {
   it('an entry with HTML in its name renders as plain text', async () => {
