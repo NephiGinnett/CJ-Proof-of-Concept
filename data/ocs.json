@@ -1,41 +1,259 @@
 [
   {
-    "id": "lyra",
-    "name": "Lyra",
-    "playerId": "zoe",
-    "bio": "EXAMPLE ENTRY — replace or delete me. A reformed cutpurse trying to go straight.",
+    "id": "bhor",
+    "name": "Bhor",
+    "playerId": "player-one",
+    "bio": "The crown prince of Basgard, out seeking thrills and hoping to live a life of his own before resigning himself to the throne.",
     "image": "",
     "tags": [
-      "redemption-arc",
-      "tavern-crew"
+      "party-of-five",
+      "basgard",
+      "royalty"
     ],
     "storyIds": [
-      "the-ember-heist"
+      "rivers-end-the-beginning",
+      "ambush-in-the-shady-glen",
+      "the-castle-of-clones",
+      "the-road-to-valen"
     ],
     "relationships": [
       {
-        "ocId": "kade",
-        "label": "rival"
+        "ocId": "mele",
+        "label": "travelling companion"
+      },
+      {
+        "ocId": "dorian",
+        "label": "travelling companion"
+      },
+      {
+        "ocId": "teek",
+        "label": "travelling companion"
+      },
+      {
+        "ocId": "forsyth",
+        "label": "parted ways at Valen"
       }
     ]
   },
   {
-    "id": "kade",
-    "name": "Kade",
-    "playerId": "zoe",
-    "bio": "EXAMPLE ENTRY — replace or delete me. A stoic mercenary with a code.",
+    "id": "mele",
+    "name": "Mele",
+    "playerId": "player-two",
+    "bio": "A powerful dragonborn searching for clues to her past and her identity.",
     "image": "",
     "tags": [
-      "tavern-crew"
+      "party-of-five",
+      "dragonborn"
     ],
     "storyIds": [
-      "the-ember-heist"
+      "rivers-end-the-beginning",
+      "ambush-in-the-shady-glen",
+      "the-castle-of-clones",
+      "the-road-to-valen"
     ],
     "relationships": [
       {
-        "ocId": "lyra",
-        "label": "rival"
+        "ocId": "bhor",
+        "label": "travelling companion"
+      },
+      {
+        "ocId": "dorian",
+        "label": "travelling companion"
+      },
+      {
+        "ocId": "teek",
+        "label": "travelling companion"
+      },
+      {
+        "ocId": "forsyth",
+        "label": "parted ways at Valen"
       }
     ]
+  },
+  {
+    "id": "dorian",
+    "name": "Dorian",
+    "playerId": "player-three",
+    "bio": "A young baker gifted with the power to lift spirits, wanting for fame and admiration.",
+    "image": "",
+    "tags": [
+      "party-of-five",
+      "baker"
+    ],
+    "storyIds": [
+      "rivers-end-the-beginning",
+      "ambush-in-the-shady-glen",
+      "the-castle-of-clones",
+      "the-road-to-valen"
+    ],
+    "relationships": [
+      {
+        "ocId": "bhor",
+        "label": "travelling companion"
+      },
+      {
+        "ocId": "mele",
+        "label": "travelling companion"
+      },
+      {
+        "ocId": "teek",
+        "label": "travelling companion"
+      }
+    ]
+  },
+  {
+    "id": "teek",
+    "name": "Teek",
+    "playerId": "player-four",
+    "bio": "A mysterious sorcerer led by an even more mysterious force. Crazed, and extremely fond of sticks.",
+    "image": "",
+    "tags": [
+      "party-of-five",
+      "sorcerer"
+    ],
+    "storyIds": [
+      "rivers-end-the-beginning",
+      "ambush-in-the-shady-glen",
+      "the-castle-of-clones",
+      "the-road-to-valen"
+    ],
+    "relationships": [
+      {
+        "ocId": "bhor",
+        "label": "travelling companion"
+      },
+      {
+        "ocId": "mele",
+        "label": "travelling companion"
+      },
+      {
+        "ocId": "dorian",
+        "label": "travelling companion"
+      },
+      {
+        "ocId": "the-crazed-old-man",
+        "label": "kindred spirit"
+      }
+    ]
+  },
+  {
+    "id": "forsyth",
+    "name": "Forsyth",
+    "playerId": "player-two",
+    "bio": "An elderly warlock who only ever wanted to be an actor. Left the party at Valen, hand outstretched to one of the village widows.",
+    "image": "",
+    "tags": [
+      "party-of-five",
+      "warlock",
+      "retired",
+      "valen"
+    ],
+    "storyIds": [
+      "rivers-end-the-beginning",
+      "ambush-in-the-shady-glen",
+      "the-castle-of-clones"
+    ],
+    "relationships": [
+      {
+        "ocId": "bhor",
+        "label": "parted ways at Valen"
+      },
+      {
+        "ocId": "mele",
+        "label": "parted ways at Valen"
+      }
+    ]
+  },
+  {
+    "id": "tom-thistlethumb",
+    "name": "Tom Thistlethumb",
+    "playerId": "the-gm",
+    "bio": "The wagon driver who carried the party into the shady glen. The ledgers found in the bandits' tower name him.",
+    "image": "",
+    "tags": [
+      "npc",
+      "rivers-end",
+      "suspect"
+    ],
+    "storyIds": [
+      "rivers-end-the-beginning",
+      "ambush-in-the-shady-glen",
+      "the-road-to-valen"
+    ],
+    "relationships": [
+      {
+        "ocId": "esther-thistlethumb",
+        "label": "husband"
+      }
+    ]
+  },
+  {
+    "id": "esther-thistlethumb",
+    "name": "Esther Thistlethumb",
+    "playerId": "the-gm",
+    "bio": "Tom's wife, riding up front with him the day the wagon was ambushed.",
+    "image": "",
+    "tags": [
+      "npc",
+      "rivers-end"
+    ],
+    "storyIds": [
+      "rivers-end-the-beginning",
+      "ambush-in-the-shady-glen"
+    ],
+    "relationships": [
+      {
+        "ocId": "tom-thistlethumb",
+        "label": "wife"
+      }
+    ]
+  },
+  {
+    "id": "the-village-chief",
+    "name": "The Village Chief",
+    "playerId": "the-gm",
+    "bio": "A very rude high elf who appraised the party's story at River's End, and who will not stop abusing his dragonborn assistant.",
+    "image": "",
+    "tags": [
+      "npc",
+      "rivers-end",
+      "high-elf"
+    ],
+    "storyIds": [
+      "rivers-end-the-beginning"
+    ],
+    "relationships": []
+  },
+  {
+    "id": "the-crazed-old-man",
+    "name": "The Crazed Old Man",
+    "playerId": "the-gm",
+    "bio": "Met on the road to the castle. Seemed crazed, but offered powerful spells stored in sticks.",
+    "image": "",
+    "tags": [
+      "npc",
+      "benevolent"
+    ],
+    "storyIds": [
+      "the-castle-of-clones"
+    ],
+    "relationships": [
+      {
+        "ocId": "teek",
+        "label": "kindred spirit"
+      }
+    ]
+  },
+  {
+    "id": "the-kind-tiefling",
+    "name": "The Kind Tiefling",
+    "playerId": "the-gm",
+    "bio": "",
+    "image": "",
+    "tags": [],
+    "storyIds": [
+      "the-castle-of-clones"
+    ],
+    "relationships": []
   }
 ]
