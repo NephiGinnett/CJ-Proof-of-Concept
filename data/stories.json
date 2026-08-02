@@ -5,7 +5,12 @@
     "summary": "EXAMPLE ENTRY — replace or delete me. A late-night job on the guild vault goes sideways when an old rivalry resurfaces.",
     "date": "",
     "image": "",
-    "ocIds": ["lyra", "kade"],
-    "tags": ["heist"]
+    "ocIds": [
+      "lyra",
+      "kade"
+    ],
+    "tags": [
+      "heist"
+    ]
   }
 ]
